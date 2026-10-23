@@ -15,13 +15,15 @@ TIMEOUT_S = 900.0
 
 
 def stream_chat(base_url: str, payload: dict, *, continuous_usage: bool = False,
-                timeout: float = TIMEOUT_S, clock=time.monotonic) -> dict:
+                timeout: float = TIMEOUT_S, clock=time.monotonic, stop=None) -> dict:
     """Send ``payload`` to ``base_url``/v1/chat/completions as a stream and time it.
 
     Returns a record: ``sent``, ``first`` (first chunk carrying output), ``end`` (clock
     readings), ``events`` ([time, cumulative output tokens] per output chunk),
     ``prompt_tokens``, ``completion_tokens``, ``finish_reason``, ``token_times`` and
-    ``error`` (None when the request completed)."""
+    ``error`` (None when the request completed). A set ``stop`` event (threading.Event)
+    ends the stream at its next chunk and closes the connection, which aborts the
+    request; the record then has ``stopped`` true and no error."""
     options = {"include_usage": True}
     if continuous_usage:
         options["continuous_usage_stats"] = True
@@ -37,6 +39,9 @@ def stream_chat(base_url: str, payload: dict, *, continuous_usage: bool = False,
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             for raw in response:
+                if stop is not None and stop.is_set():
+                    record["stopped"] = True
+                    break
                 line = raw.decode("utf-8", errors="replace").strip()
                 if not line.startswith("data: "):
                     continue

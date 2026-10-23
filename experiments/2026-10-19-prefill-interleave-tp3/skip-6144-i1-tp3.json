@@ -1,0 +1,6 @@
+{
+ "notes": "The budget sweep's skip arm at 6,144 (threshold 6,096): long prompts split at 6,096 instead of 4,048 and 8,096, the encoder-side check that outputs do not depend on where a prompt splits.",
+ "extends": {
+  "config": "experiments/2026-10-19-prefill-budget-tp3/skip-6144-tp3.json"
+ }
+}

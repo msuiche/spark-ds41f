@@ -15,10 +15,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from servebench import __main__ as cli  # noqa: E402
-from servebench import behaviour, client, engine, load, prefill, prom, prompts, report, stats, suite  # noqa: E402
+from servebench import behaviour, client, engine, load, prefill, prom, prompts, report, stall, stats, suite  # noqa: E402
 
 CHUNK_TOKENS = 2      # tokens per streamed chunk (a "step" of the fake engine)
 CHUNK_DELAY_S = 0.004
+LONG_PROMPT = 2000    # characters: a prompt longer than this prefills (FakeServer.prefill_stall_s)
 VOCAB = 1000
 
 
@@ -45,9 +46,13 @@ class _ThreadingServer(ThreadingHTTPServer):
 class FakeServer:
     """Streams max_tokens / 2 chunks of two tokens each; counts steps and tokens."""
 
-    def __init__(self, step_scale: float = 1.0, variant: bool = False):
+    def __init__(self, step_scale: float = 1.0, variant: bool = False, prefill_stall_s: float = 0.0):
         self.step_scale = step_scale  # engine grid: multiplies every step time
         self.variant = variant        # model behaviour: a build whose numbers differ slightly
+        # A prompt longer than LONG_PROMPT characters prefills for this long, and every
+        # stream's next chunk waits for it, as decode steps wait for a prefill chunk.
+        self.prefill_stall_s = prefill_stall_s
+        self.stall_until = 0.0
         self.resets = 0
         self.seen: list[tuple[str, int]] = []  # (cache salt, prompt characters) per streamed request
         self.lock = threading.Lock()
@@ -126,6 +131,9 @@ class FakeServer:
                     return
                 with fake.lock:
                     fake.seen.append((request.get("cache_salt"), len(request["messages"][0]["content"])))
+                    long_prompt = fake.prefill_stall_s and len(request["messages"][0]["content"]) > LONG_PROMPT
+                    if long_prompt:
+                        fake.stall_until = time.monotonic() + fake.prefill_stall_s
                 per_chunk = request.get("stream_options", {}).get("continuous_usage_stats", False)
                 total = request["max_tokens"]
                 self.send_response(200)
@@ -136,10 +144,16 @@ class FakeServer:
                     self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
                     self.wfile.flush()
 
-                send({"choices": [{"delta": {"role": "assistant"}}]})
+                try:
+                    send({"choices": [{"delta": {"role": "assistant"}}]})
+                    self.stream(send, total, per_chunk)
+                except (BrokenPipeError, ConnectionResetError):  # the client stopped the stream
+                    pass
+
+            def stream(self, send, total, per_chunk):
                 produced = 0
                 while produced < total:
-                    time.sleep(CHUNK_DELAY_S)
+                    time.sleep(max(CHUNK_DELAY_S, fake.stall_until - time.monotonic()))
                     produced += CHUNK_TOKENS
                     with fake.lock:
                         fake.counters["generation"] += CHUNK_TOKENS
@@ -380,6 +394,100 @@ class LiveTest(unittest.TestCase):
             self.assertIn("output tokens/step", metrics)
 
 
+class StallTest(unittest.TestCase):
+    def test_gaps_split_at_the_prefill(self):
+        events = [[0.0, 1], [1.0, 2], [2.0, 3], [5.0, 4], [6.0, 5], [7.0, 6]]
+        self.assertEqual(stall.split_gaps(events, 2.5, 5.5), ([1.0, 1.0], [3.0, 1.0]))
+        self.assertEqual(stall.split_gaps(events[:1], 0.5, 1.0), ([], []))
+
+    def test_streams_wait_for_a_long_prefill(self):
+        fake = FakeServer(prefill_stall_s=0.3)
+        try:
+            samples = stall.run(fake.url, "fake-model", [3000], streams=3, max_tokens=200000, warmup_s=0.2,
+                                tail_s=0.1, repeats=2)
+            for sample in samples:
+                self.assertIsNone(sample["error"])
+                self.assertEqual(sample["covering"], 3)
+                self.assertGreaterEqual(sample["ttft_s"], 0.29)
+                self.assertGreaterEqual(sample["stall_s"], 0.25)
+                self.assertLess(sample["before_s"]["p50"], 0.05)
+            rows = stall.summarize(samples)
+            self.assertEqual(rows[0]["failed"], 0)
+            self.assertEqual(rows[0]["stall_s"]["n"], 2)
+            verdicts = {row["metric"]: row["verdict"] for row in stall.compare(rows, rows)["rows"]}
+            self.assertEqual(set(verdicts.values()), {"same"})
+            self.assertIn("worst decode wait during 3,000 prefill (s)", verdicts)
+            # The streams were stopped at the document's first token, not run to their budget.
+            self.assertLess(fake.counters["generation"], 100000)
+        finally:
+            fake.close()
+
+    def test_short_streams_fail_the_repeat(self):
+        fake = FakeServer(prefill_stall_s=0.3)
+        try:
+            sample = stall.run(fake.url, "fake-model", [3000], streams=2, max_tokens=8, warmup_s=0.2,
+                               tail_s=0.1, repeats=1)[0]
+            self.assertEqual(sample["covering"], 0)
+            self.assertIn("did not decode across the prefill", sample["error"])
+            self.assertEqual(stall.summarize([sample])[0]["failed"], 1)
+        finally:
+            fake.close()
+
+    def test_cli_stall_compare_and_suite_arguments(self):
+        fake = FakeServer(prefill_stall_s=0.2)
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                out = os.path.join(directory, "stall.json")
+                argv = ["stall", fake.url, "--sizes", "3000", "--streams", "2", "--max-tokens", "200000",
+                        "--warmup", "0.1", "--tail", "0.1", "--repeats", "2", "--output", out]
+                self.assertEqual(cli.main(argv), 0)
+                result = json.loads(Path(out).read_text())
+                self.assertEqual(result["schema"], stall.SCHEMA)
+                self.assertEqual(result["workload"]["streams"], 2)
+                self.assertEqual(cli.main(["compare", out, out]), 0)
+            step = {"id": "stall", "command": "stall",
+                    "args": {"sizes": [131072], "streams": 8, "max_tokens": 16384, "warmup": 20, "repeats": 3}}
+            parsed = cli.build_parser().parse_args(suite.arguments(step, "http://h:8000", "o.json", "x", None))
+            self.assertEqual((parsed.sizes, parsed.streams, parsed.max_tokens, parsed.warmup),
+                             ("131072", 8, 16384, 20.0))
+        finally:
+            fake.close()
+
+    def test_a_suite_runs_and_compares_a_stall_step(self):
+        fake = FakeServer(prefill_stall_s=0.2)
+        steps = [{"id": "stall", "command": "stall",
+                  "args": {"sizes": [3000], "streams": 2, "max_tokens": 200000, "warmup": 0.1, "tail": 0.1,
+                           "repeats": 2}}]
+        definition = {"name": "stall-only", "version": 1, "description": "a stall step", "steps": steps}
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                path = os.path.join(tmp, "stall.json")
+                Path(path).write_text(json.dumps(definition))
+                self.assertEqual(suite.load(path)["steps"], steps)
+                base, cand = os.path.join(tmp, "base"), os.path.join(tmp, "cand")
+                for out in (base, cand):
+                    self.assertEqual(cli.main(["suite", fake.url, "--suite", path, "--out", out]), 0)
+                result = suite.compare(cli.read_json, base, cand, lambda b, c: cli.compare_results(b, c, 3.0))
+                self.assertEqual(result["steps"]["stall"][0], stall.SCHEMA)
+                self.assertEqual(len(result["steps"]["stall"][1]["rows"]), 4)
+        finally:
+            fake.close()
+
+    def test_a_stopped_stream_is_not_an_error(self):
+        fake = FakeServer()
+        try:
+            stop = threading.Event()
+            body = {"model": "m", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 200000}
+            timer = threading.Timer(0.1, stop.set)
+            timer.start()
+            record = client.stream_chat(fake.url, body, continuous_usage=True, stop=stop)
+            self.assertTrue(record["stopped"])
+            self.assertIsNone(record["error"])
+            self.assertGreater(len(record["events"]), 1)
+        finally:
+            fake.close()
+
+
 class EngineTest(unittest.TestCase):
     def test_default_grid_reaches_the_longest_context(self):
         shapes = engine.default_shapes(drafts=5, max_context=1048576)
@@ -544,7 +652,7 @@ class SuiteTest(unittest.TestCase):
         model = {"id": "m", "command": "model", "args": {}}
         self.assertIn("--corpus", suite.arguments(model, "U", "O", None, "C"))
         self.assertEqual(suite.check({"name": "x", "steps": [{"id": "a", "command": "dance"}]}),
-                         ["step a: command must be one of model, engine, run, prefill"])
+                         ["step a: command must be one of model, engine, run, prefill, stall"])
 
     def test_floor_verdicts(self):
         def outcome(grid, tps):

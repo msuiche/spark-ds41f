@@ -1,0 +1,38 @@
+{
+ "experiment": "experiments/2026-10-19-sink-rejection-v2",
+ "run": "sink-rejection-v2-probes3",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "bench": false,
+   "bracket": false,
+   "extras": [
+    [
+     "probes.py",
+     [
+      "--nodes",
+      "dgx1,dgx2,dgx3"
+     ],
+     "probes"
+    ]
+   ],
+   "arms": [
+    {
+     "config": "correction-ranks.json",
+     "label": "correction-ranks"
+    },
+    {
+     "config": "detector.json",
+     "label": "detector"
+    },
+    {
+     "config": "r6x-dev.json",
+     "label": "r6x"
+    }
+   ]
+  }
+ ]
+}

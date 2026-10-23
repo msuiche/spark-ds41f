@@ -67,7 +67,7 @@ python3 -m servebench compare runs/base runs/candidate
 
 A suite is a fixed, named set of measurements, kept as data in
 [suites/](suites/): steps, each a servebench command (`model`, `engine`, `run`,
-`prefill`) with its arguments. Every build measured with a suite is measured the same way:
+`prefill`, `stall`) with its arguments. Every build measured with a suite is measured the same way:
 - a run writes each step's result and `suite.json`, which records the suite and its
   SHA-256, plus whatever `--metadata FILE` holds (a JSON object, stored as given: the
   cluster tooling records the deployment's identity there);
@@ -98,6 +98,19 @@ fixed sizes. Each prompt is Python standard-library source from a fixed seed, so
 build reads the same text; it is sized by the server's tokenizer and sent with a fresh
 cache salt. The rate is prompt tokens over time to first token. Repeats go round the
 sizes in turn, and comparisons use Welch intervals.
+
+## Stalls during a long prefill
+
+`python3 -m servebench stall URL --sizes 131072 --streams 8 --repeats 3` measures what
+other streams wait while one long cold prompt prefills. The streams decode first (fixed
+length, fresh salts, the default prompts); after `--warmup` seconds the prefill step's
+document is sent for one output token, and the streams stop `--tail` seconds after its
+first token. A stream's gaps between output chunks are its step times: those ending
+before the document was sent are the decode baseline, those overlapping its prefill the
+stall. It reports the worst overlapping gap (the longest step that carried a prefill
+chunk, which the long-prefill budget sets), the overlapping gaps' median and p99, the
+baseline median and the prefill rate under decode. A repeat fails unless every stream
+decoded across the whole prefill (`--max-tokens` must outlast warm-up and prefill).
 
 ## Engine cost grid
 

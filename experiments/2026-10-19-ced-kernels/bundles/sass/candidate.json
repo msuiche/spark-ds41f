@@ -1,0 +1,27 @@
+{
+  "description": "SASS of the Triton reference and TileLang candidate CED copy and request kernels.",
+  "image": "vllm-ds41f-kkref:19f2c20ed4d6-r6x",
+  "env": {
+    "HF_HUB_OFFLINE": "1",
+    "TILELANG_CACHE_DIR": "/tmp/tilelang-sass",
+    "VLLM_DS41_KERNEL_BACKEND": "tilelang"
+  },
+  "workdir": "/opt/spark3/candidate/vllm",
+  "argv": [
+    "/b/dump_sass.py"
+  ],
+  "mounts": [
+    [
+      "ced.py",
+      "/opt/spark3/candidate/vllm/vllm/models/deepseek_v4_1/tilelang/ced.py"
+    ],
+    [
+      "dump_sass.py",
+      "/b/dump_sass.py"
+    ],
+    [
+      "ced_reference.py",
+      "/opt/spark3/candidate/vllm/benchmarks/kernels/ced_reference.py"
+    ]
+  ]
+}

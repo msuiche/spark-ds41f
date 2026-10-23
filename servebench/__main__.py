@@ -11,7 +11,7 @@ import sys
 import time
 import urllib.request
 
-from . import SCHEMA, __version__, behaviour, engine, load, prefill, prompts, report, suite
+from . import SCHEMA, __version__, behaviour, engine, load, prefill, prompts, report, stall, suite
 
 
 def model_id(base_url: str) -> str:
@@ -166,6 +166,8 @@ def compare_results(base: dict, candidate: dict, tolerance: float) -> tuple[str,
         return schema, engine.compare(base, candidate, tolerance_pct=tolerance)
     if schema == prefill.SCHEMA:
         return schema, prefill.compare(base["prefill"], candidate["prefill"], tolerance_pct=tolerance)
+    if schema == stall.SCHEMA:
+        return schema, stall.compare(base["stall"], candidate["stall"], tolerance_pct=tolerance)
     return schema, report.compare(base, candidate, tolerance_pct=tolerance)
 
 
@@ -229,6 +231,37 @@ def command_prefill(args: argparse.Namespace) -> int:
     print(json.dumps({"summary": "servebench prefill", "label": args.label,
                       "tps": {row["size"]: row["tps"].get("mean") for row in rows},
                       "ci95_pct": {row["size"]: row["tps"].get("ci95_pct") for row in rows},
+                      "skipped": skipped, "failed": failed, "output": args.output}), flush=True)
+    return 1 if failed else 0
+
+
+def command_stall(args: argparse.Namespace) -> int:
+    model = args.model or model_id(args.url)
+    longest = engine.max_model_len(args.url)
+    sizes = [int(size) for size in args.sizes.split(",")]
+    skipped = [size for size in sizes if longest and size > longest - 1024]
+    extra = json.loads(args.extra_body) if args.extra_body else {}
+    started = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    samples = stall.run(args.url, model, [s for s in sizes if s not in skipped], streams=args.streams,
+                        max_tokens=args.max_tokens, warmup_s=args.warmup, tail_s=args.tail, repeats=args.repeats,
+                        vllm=not args.no_vllm, extra_body=extra,
+                        log=lambda message: print(message, file=sys.stderr, flush=True))
+    rows = stall.summarize(samples)
+    result = {"schema": stall.SCHEMA, "tool": {"name": "servebench", "version": __version__},
+              "started_utc": started, "label": args.label,
+              "server": {"url": args.url, "model": model, "max_model_len": longest},
+              "workload": {"sizes": sizes, "streams": args.streams, "max_tokens": args.max_tokens,
+                           "warmup_s": args.warmup, "tail_s": args.tail, "repeats": args.repeats, "skipped": skipped,
+                           "extra_body": extra, "question": prefill.QUESTION},
+              "stall": rows, "samples": samples}
+    if args.output:
+        write_json(args.output, result)
+    failed = sum(row["failed"] for row in rows)
+    print(json.dumps({"summary": "servebench stall", "label": args.label,
+                      "stall_s": {row["size"]: row["stall_s"].get("mean") for row in rows},
+                      "during_p50_s": {row["size"]: row["during_p50_s"].get("mean") for row in rows},
+                      "before_p50_s": {row["size"]: row["before_p50_s"].get("mean") for row in rows},
+                      "tps": {row["size"]: row["tps"].get("mean") for row in rows},
                       "skipped": skipped, "failed": failed, "output": args.output}), flush=True)
     return 1 if failed else 0
 
@@ -330,6 +363,21 @@ def build_parser() -> argparse.ArgumentParser:
     cold.add_argument("--label", help="name for tables")
     cold.add_argument("--output", help="write the result JSON here")
     cold.set_defaults(func=command_prefill)
+    waits = sub.add_parser("stall", help="decode stalls of concurrent streams while a long cold prompt prefills")
+    waits.add_argument("url", help="base URL, e.g. http://127.0.0.1:8000")
+    waits.add_argument("--sizes", default="131072", help="document sizes in tokens, comma-separated")
+    waits.add_argument("--streams", type=int, default=8, help="decoding streams")
+    waits.add_argument("--max-tokens", type=int, default=16384,
+                       help="each stream's output budget; it must outlast warm-up and prefill")
+    waits.add_argument("--warmup", type=float, default=20.0, help="seconds of decoding before the document")
+    waits.add_argument("--tail", type=float, default=2.0, help="seconds of decoding after its first token")
+    waits.add_argument("--repeats", type=int, default=3)
+    waits.add_argument("--model", help="model id (default: the server's first)")
+    waits.add_argument("--extra-body", help="JSON merged into every request body")
+    waits.add_argument("--no-vllm", action="store_true", help="plain OpenAI requests (no cache salt)")
+    waits.add_argument("--label", help="name for tables")
+    waits.add_argument("--output", help="write the result JSON here")
+    waits.set_defaults(func=command_stall)
     fixed = sub.add_parser("suite", help="run a fixed set of measurements (servebench/suites/*.json)")
     fixed.add_argument("url", help="base URL, e.g. http://127.0.0.1:8000")
     fixed.add_argument("--suite", default="screen", help="built-in suite name or JSON path")

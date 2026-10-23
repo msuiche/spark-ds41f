@@ -1,0 +1,27 @@
+{
+ "notes": "r6x on the ring with vLLM 0185 (overlay/, vLLM d5bfe0203 on r6x 7316c7f9f, the image's tree): the TP group's broadcast on the RoCE policy, sparknet's one-shot all-gather on TileLang.",
+ "extends": {
+  "config": "experiments/2026-10-18-r6x/r6x-tp4-1017.json"
+ },
+ "set": {
+  "container": {
+   "mounts": [
+    [
+     "{home}/projects/spark-ds41f/cache",
+     "/cache",
+     "rw"
+    ],
+    [
+     "{home}/projects/spark-ds41f/experiments/2026-10-20-broadcast-oneshot/overlay/vllm/distributed/parallel_state.py",
+     "/opt/spark3/candidate/vllm/vllm/distributed/parallel_state.py",
+     "ro"
+    ],
+    [
+     "{home}/projects/spark-ds41f/experiments/2026-10-20-broadcast-oneshot/overlay/vllm/distributed/device_communicators/cuda_communicator.py",
+     "/opt/spark3/candidate/vllm/vllm/distributed/device_communicators/cuda_communicator.py",
+     "ro"
+    ]
+   ]
+  }
+ }
+}

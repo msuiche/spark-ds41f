@@ -1,0 +1,20 @@
+{
+ "name": "prefill-release-tp3",
+ "version": 1,
+ "description": "release-tp3's prefill step alone: cold real-text prefills of 32K to 500K tokens, three repeats.",
+ "steps": [
+  {
+   "id": "prefill",
+   "command": "prefill",
+   "args": {
+    "sizes": [
+     32768,
+     131072,
+     262144,
+     500000
+    ],
+    "repeats": 3
+   }
+  }
+ ]
+}

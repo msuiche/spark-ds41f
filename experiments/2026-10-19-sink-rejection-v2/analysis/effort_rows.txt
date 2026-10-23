@@ -1,0 +1,47 @@
+threshold 50000; 40 runs with a summary in /home/swank/spark-lab/think-collapse-effort/out
+case                          gen finished | last prompt row |    prompt max (not BOS, not sampled) |          clean sampled max | sunk sampled rows
+e100-sayhi                     36      eos |              82 |          4,512         ' (' at   9 |        5,120   ' greeting' | 
+e100-thanks                    60      eos |              86 |          4,512         ' (' at   9 |        1,992         ' We' | 
+e25-sayhi                      26      eos |              48 |            432          ' ' at  11 |          231          ' "' | 
+e25-thanks                     26      eos |              89 |            432          ' ' at  11 |          258           '.' | 
+e50-2plus2                     19      eos |              20 |            324 '<｜System｜>' at   1 |          180           '.' | 
+e50-goodnight                  39      eos |              23 |            324 '<｜System｜>' at   1 |          183           '.' | 
+e50-greatthanks                10  running |              33 |        126,976       ' the' at  32 |          190        ' say' | 
+e50-hello                      34      eos |              46 |            324 '<｜System｜>' at   1 |          292          ' I' | 
+e50-help                      108  running |               8 |        129,024        ' me' at  31 |       10,688 ' effectively' | 
+e50-hithere                    40  running |              14 |        128,000          ',' at  30 |          254           '.' | 
+e50-joke                       51      eos |              22 |        129,536         ' a' at  30 |          221        ' don' | 
+e50-ok                         13  running |              62 |            324 '<｜System｜>' at   1 |        6,368   ' question' | 
+e50-sayhi                      25      eos |              37 |            324 '<｜System｜>' at   1 |          221          ' "' | 
+e50-sea                        46      eos |              19 |        127,488       ' the' at  32 |          320    ' exactly' | 
+e50-thanks                     60      eos |              57 |            324 '<｜System｜>' at   1 |        5,536   ' friendly' | 
+e50-translate                  37      eos |              10 |            896          "'" at  32 |          166           '.' | 
+e50-whoareyou                 120 max_new_tokens |              57 |            324 '<｜System｜>' at   1 |        8,576         ' do' | 
+e50-worked                     66      eos |              30 |        130,560        ' so' at  30 |          247       ' Glad' | 
+e64-sayhi                      14      eos |              62 |            324 '<｜System｜>' at   1 |          280        ' How' | 112,128 ' can'
+e64-thanks                     76      eos |              67 |            324 '<｜System｜>' at   1 |        7,648    ' further' | 
+e90-sayhi                      15      eos |              72 |            324 '<｜System｜>' at   1 |          238       ' with' | 125,440 ' I'
+e90-thanks                     68      eos |              72 |            324 '<｜System｜>' at   1 |        9,984   ' friendly' | 
+high-sayhi                     14      eos |              63 |          7,008         ' (' at   9 |          316        ' How' | 114,176 ' can'
+high-thanks                    47      eos |              60 |          7,008         ' (' at   9 |          704    ' briefly' | 119,808 ' there'
+omit-2plus2                    19      eos |              19 |        135,168       'What' at   2 |          149           '.' | 
+omit-color                     56      eos |               5 |        134,144       'Name' at   2 |        6,176      'simple' | 
+omit-goodnight                 63      eos |              11 |        135,168       'Good' at   2 |        1,096       ' back' | 
+omit-greatthanks               86      eos |              28 |        134,144      'Great' at   2 |        9,472      ' short' | 
+omit-hello                     46      eos |              66 |        134,144      'Hello' at   2 |        6,176   ' friendly' | 
+omit-help                     120 max_new_tokens |              10 |        135,168        'Can' at   2 |        2,272     ' warmly' | 
+omit-hithere                   45      eos |               9 |        134,144         'Hi' at   2 |          232           '.' | 
+omit-joke                     120 max_new_tokens |              15 |        136,192       'Tell' at   2 |        4,256 ' understandable' | 
+omit-monday                    24      eos |              79 |        135,168       'What' at   2 |          204           '.' | 
+omit-ok                        59      eos |              50 |        134,144         'ok' at   2 |        2,272       ' with' | 
+omit-sayhi                     23      eos |              24 |        136,192        'Say' at   2 |          167        ' say' | 
+omit-sea                      120 max_new_tokens |              24 |        135,168      'Write' at   2 |        9,856  '-contained' | 
+omit-thanks                    56      eos |              44 |        134,144     'Thanks' at   2 |          840      ' short' | 
+omit-translate                 44      eos |               7 |        132,096  'Translate' at   2 |          160           '.' | 
+omit-whoareyou                120 max_new_tokens |              35 |        135,168        'Who' at   2 |        6,528 ' invitation' | 
+omit-worked                    87      eos |              22 |        136,192      'Thank' at   2 |        8,320     ' warmly' | 
+
+sampled rows above the threshold: 4, 112,128 to 125,440
+largest sampled row at or below it: 10,688
+largest last prompt row (the prefill's sampled row): 89
+largest prompt row other than BOS (never sampled unless it is the last): 136,192; BOS 315,392

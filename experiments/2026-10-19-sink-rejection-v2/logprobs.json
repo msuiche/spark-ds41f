@@ -1,0 +1,41 @@
+{
+ "name": "sink-logprobs",
+ "version": 1,
+ "description": "Closed loops at 1 and 8 streams with five top logprobs per token (thinking off), 30 s warm-up and 120 s measured: with rejection on, every step computes the alternates' logprobs and ranks for every request.",
+ "steps": [
+  {
+   "id": "c1-logprobs",
+   "command": "run",
+   "args": {
+    "mode": "closed",
+    "concurrency": 1,
+    "warmup": 30,
+    "duration": 120,
+    "extra_body": {
+     "chat_template_kwargs": {
+      "thinking": false
+     },
+     "logprobs": true,
+     "top_logprobs": 5
+    }
+   }
+  },
+  {
+   "id": "c8-logprobs",
+   "command": "run",
+   "args": {
+    "mode": "closed",
+    "concurrency": 8,
+    "warmup": 30,
+    "duration": 120,
+    "extra_body": {
+     "chat_template_kwargs": {
+      "thinking": false
+     },
+     "logprobs": true,
+     "top_logprobs": 5
+    }
+   }
+  }
+ ]
+}

@@ -4,8 +4,37 @@ Reproducible Docker/vLLM deployment, tuning, and benchmarks for DeepSeek V4.1
 Flash on a switchless three-node DGX Spark fabric, and the same deployment on
 a four-node ring.
 
-Production is **r6v**, serving DeepSeek-V4.1-Flash-1017 on both profiles: the
-four-node TP4 1M profile on the ring the site is cabled as (2026-10-17,
+Production is **spark-ds41f-1022**, serving DeepSeek-V4.1-Flash-1017 on the four-node TP4
+1M profile on the ring the site is cabled as (2026-10-23; the three-node TP3 1M profile on the
+triangle since 2026-10-22,
+[promotion record](experiments/2026-10-22-spark-ds41f-1022/README.md)), the first release named
+`spark-ds41f-MMDD`. It is r6x with the TP group's broadcast on sparknet's one-shot all-gather
+(serving never touches the PyTorch NCCL process group), sink detection and draft-zero rejection
+on by default for DeepSeek V4.1 (short prompts such as `Say hi.` no longer collapse to an empty
+answer), late admission (the next step is decided at decoder layer 30, so an arrival joins one
+step sooner), control-token spellings in request text kept as plain text (#449), and sparknet
+0.5.0's wider one-shot read phase. Outputs are identical to r6x's. Against r6x in one session on the triangle,
+decode steps are 1.1% faster and eight streams, one stream and prefill level (prefill once
+vLLM 0226 restored it); time to first token is level at four and eight streams, and a request
+alone waits one decode step longer (sink rejection holds its first token one step). On the ring,
+against r6x in one session, decode steps are 1.7% faster and sixteen streams, one stream and
+prefill level, outputs identical. r6x's recipe and lock are frozen in
+`experiments/2026-10-22-spark-ds41f-1022/r6x`.
+
+Before spark-ds41f-1022, production was **r6x**, serving DeepSeek-V4.1-Flash-1017 on the four-node TP4 1M
+profile on the ring (2026-10-19,
+[promotion record](experiments/2026-10-18-r6x/README.md)), then on the triangle. r6x is r6v with the routed
+experts' SwiGLU over the dispatch layout's live tiles, the routed experts' weight scales
+kept as row bases and 4-bit codes (exact, about 2.1 GiB a rank freed), and a DSpark draft
+budget that is a rule of the inputs (row cost 0.035), so nothing is timed at boot. Outputs
+are identical to r6v's; against r6v decode steps are 2.5% faster and 16 and 8 streams 3.6%
+and 3.8% faster, prefill level. The three-node TP3 profile served r6x at 1M context from
+2026-10-19 (4.55 full 1M contexts of KV, from the memory the scale codes freed;
+[experiments/2026-10-19-r6x-tp3-1m](experiments/2026-10-19-r6x-tp3-1m/README.md)). r6v's recipe and lock are frozen
+in `experiments/2026-10-18-r6x/r6v`.
+
+Before r6x, production was **r6v** on both profiles: the
+four-node TP4 1M profile on the ring (2026-10-17,
 [promotion record](experiments/2026-10-17-r6v/README.md)), and the three-node TP3
 512K profile on the triangle, whose path is r6u's (2026-10-17,
 [promotion record](experiments/2026-10-17-r6u/README.md)). r6v is r6u with
@@ -60,9 +89,9 @@ The deployment tools also generate and validate a
 [config/cluster.json](config/cluster.json), serves every shape on one image:
 four nodes in a ring (`tp4-ring`, the checkpoint's full 1,048,576-token
 context with 16 sequences, benchmarked at those limits, see
-[Performance](#performance)) and three in a triangle (`tp3-triangle`, 524,288
-tokens and 8 sequences). The shapes differ only in their cabling (node map,
-transport, NCCL settings) and their memory sizing.
+[Performance](#performance)) and three in a triangle (`tp3-triangle`, the same
+1,048,576-token context with 8 sequences since r6x). The shapes differ only in their
+cabling (node map, transport, NCCL settings) and their memory sizing.
 
 Named [TP3/TP4 transport tuning profiles](experiments/2026-10-03-transport-profiles/README.md)
 keep B12X's measured RoCEnante limits and NCCL settings together.
@@ -88,7 +117,7 @@ undo it.
 | Sparks | Shape of [config/cluster.json](config/cluster.json) | Context | Kernel | [Memory saver](https://github.com/christopherowen/dgx-spark-memory-saver) |
 | --- | --- | ---: | --- | --- |
 | 3 | `tp3-triangle-4k` | 262,144 | stock 4 KiB | not needed |
-| 3 | `tp3-triangle` | 524,288 | 64 KiB | required |
+| 3 | `tp3-triangle` | 1,048,576 | 64 KiB | required |
 | 4 | `tp4-ring` | 1,048,576 | 64 KiB | required |
 
 Name your cabling once with `bin/spark site shape NAME --apply`; every command
@@ -122,11 +151,11 @@ unless told to ([launch preflight](docs/doctor.md#launch-preflight)).
 ## Current baseline
 
 The baseline is
-[manifests/baselines/2026-10-17-karmic-kraken-r6v.json](manifests/baselines/2026-10-17-karmic-kraken-r6v.json)
-([promotion record](experiments/2026-10-17-r6v/README.md)), since 2026-10-17, on the ring
-and the triangle (whose release run is r6u's,
-[manifests/baselines/2026-10-17-karmic-kraken-r6u.json](manifests/baselines/2026-10-17-karmic-kraken-r6u.json)); see
-[docs/current-state.md](docs/current-state.md). The three-node deployment:
+[manifests/baselines/2026-10-22-spark-ds41f-1022.json](manifests/baselines/2026-10-22-spark-ds41f-1022.json)
+([promotion record](experiments/2026-10-22-spark-ds41f-1022/README.md)), on the triangle since
+2026-10-22 and on the ring since 2026-10-23, both at 1M context; see
+[docs/current-state.md](docs/current-state.md). The three-node deployment (the four-node ring
+differs only in cabling, transport and memory sizing):
 
 - three DGX Spark nodes using tensor parallelism 3, on DGX Spark 26.09.2 with
   kernel `7.0.0-1019-nvidia-64k` (`kho=off`), signed memory-saver DKMS
@@ -145,12 +174,18 @@ and the triangle (whose release run is r6u's,
     at decode tiles), and prefill rasterizes weights larger than L2 in panels;
   - DeepSeek's TileKernels 2.0.0 for the MoE top-k gate, the SwiGLU and
     quantization casts and mHC, with the mHC projection a TileLang kernel;
+  - the routed experts' SwiGLU and MXFP8 cast run over the dispatch layout's
+    live tiles only, and the routed experts' weight scales are kept as a row
+    base exponent and 4-bit codes (exact, half the scale bytes; about 2.7 GiB a
+    rank freed at TP3, which pays for the 1M context);
   - TileLang kernels for RoPE, the CSA compressor and its projection, the KV
     cache writers, the Engram gate, hash and row gather, the index-head weight
     scale, the sparse-MLA metadata (the first port off Triton), the WO
     projection and the drafter's context-KV projection;
-  - sparknet's one-shot RoCE all-reduce and all-gather, explicit and
-    fail-stop;
+  - sparknet 0.5.0's one-shot RoCE all-reduce and all-gather, explicit and
+    fail-stop, for every TP collective including DSpark's per-step broadcast
+    (serving never uses the PyTorch NCCL process group); its data phase reads
+    one 16-byte pack a thread with a single poller;
   - L2 weight prefetch during decode (the next layer's weights and scale
     words stream into L2 while latency-bound kernels run);
   - B12X's vision tower kernels, which the family does not replace yet, and
@@ -185,18 +220,30 @@ and the triangle (whose release run is r6u's,
   compressed entries for generated tokens match the ones prefill builds;
 - DSpark speculative decoding with five draft tokens (the drafter's trained
   block) and block rejection, full CUDA graphs for decode batches up to 48
-  tokens, verification-cost curves profiled for this image; verification rows
+  tokens, and a draft budget that is a rule of the inputs (a fixed linear step
+  cost, row cost 0.035), so nothing is timed at boot; verification rows
   whose drafts are unlikely to survive skip the routed experts, the drafter
   marks its padding rows for the MoE routers, and greedy drafts stay sharded
   by vocabulary over the checkpoint's BF16 drafter head and Markov projection;
+- late admission: the asynchronous engine decides each step when the step in
+  flight reaches decoder layer 30, so a request that arrives meanwhile joins
+  the next step; a step that continues a prompt chunk decides its successor at
+  once, which keeps chunked prefill's pace;
+- sink detection and draft-zero rejection for DeepSeek V4.1, on by default
+  (`VLLM_SINK_REJECTION=0` turns it off): a sampled token that becomes the
+  model's attention sink (residual column 2455) is drawn again, so short
+  prompts such as `Say hi.` no longer collapse; a request's first token waits
+  one decode step for it;
+- control-token spellings written in request text stay plain text, as
+  DeepSeek's encoder treats them;
 - the fabricated context of startup profiling gives each KV cache group its
   own blocks;
 - sequence-parallel prefill once a prompt chunk's reduce-scatter outgrows
   the one-shot RoCE all-reduce (205 tokens);
 - mutating custom ops read their argument schema once per call, not once per
   argument as torch does;
-- 524,288-token per-request limit, eight admitted sequences, and 2,845,543
-  KV tokens (5.43 full windows) in a 3.5 GiB-per-rank cache;
+- 1,048,576-token per-request limit, eight admitted sequences, and 4,765,898
+  KV tokens (4.55 full 1M windows) in a 4.90625 GiB-per-rank cache;
 - one concurrent prefill, 4,096 batched tokens, and fail-closed 5 GiB startup
   and 3 GiB steady memory guards;
 - FlashInfer autotune disabled (`--no-enable-flashinfer-autotune`): only the
@@ -208,7 +255,7 @@ coherence gate 5/5; see [Performance](#performance).
 The machine-readable desired configuration is the recipe
 [config/cluster.json](config/cluster.json): everything the shapes share once,
 and a `shapes` table with each shape's node map, transport, NCCL settings,
-memory sizing, cost curves and qualifying benchmark
+memory sizing and qualifying benchmark
 ([scripts/recipe.py](scripts/recipe.py) resolves it; the
 [memory profiles](docs/memory-profiles.md) explain the page-size variants). The
 per-shape files it replaced are archived as release records in
@@ -217,6 +264,77 @@ To reproduce the deployment on your own Sparks, follow
 [docs/setup.md](docs/setup.md).
 
 ## Performance
+
+spark-ds41f-1022 against r6x on four nodes, both serving DeepSeek-V4.1-Flash-1017
+(2026-10-23), measured with the trimmed promotion suite in one session (spark-ds41f-1022,
+r6x, spark-ds41f-1022 again; [results](experiments/2026-10-22-spark-ds41f-1022/README.md#the-ring-2026-10-23);
+[suite run](manifests/suites/2026-10-22-spark-ds41f-1022-tp4/)). Bold changes exceed their 95%
+interval and the run's own repeat.
+
+| Workload | TP4 r6x | TP4 spark-ds41f-1022 |
+| --- | ---: | ---: |
+| Decode step time, geometric mean of 20 shapes | | **-1.7%** ±0.16 |
+| Decode, 16 streams (tok/s) | 253.1 | 256.5 (+1.3% ±0.8) |
+| One conversation at a time (tok/s) | 74.1 | 74.1 (0.0% ±8.3) |
+| Source-text prefill, 32K (tok/s) | 6,034 | 6,030 (-0.1% ±0.5) |
+| Prefill, 131K | 5,982 | 5,985 (+0.1% ±0.6) |
+| Time to first token p50, 16 streams / one stream (s) | 0.396 / 0.100 | 0.400 / 0.129 |
+
+All 64 greedy responses are identical to r6x's. A request alone waits one decode step
+longer for its first token: sink rejection verifies it before it is sent.
+
+spark-ds41f-1022 on three nodes at 1M (2026-10-22): the same comparison on its image
+`-1022-2` (one session; [results](experiments/2026-10-22-spark-ds41f-1022/README.md#promotion-comparison-2026-10-22-1003-1105-cet))
+measured the decode step **1.1%** faster (±0.16), eight streams 151.3 to 153.6 tok/s (same), one
+stream level and prefill 0.7-0.8% lower; vLLM 0226 then restored prefill (its A/B: 0.6-1.4%
+faster on every paired prompt), and the promoted image measured 4,460 / 4,384 tok/s at
+32K / 131K against r6x's 4,461 / 4,386. Time to first token at four and eight streams is level
+with r6x's, and one stream is one decode step longer. Reference run:
+[manifests/suites/2026-10-22-spark-ds41f-1022-tp3](manifests/suites/2026-10-22-spark-ds41f-1022-tp3/).
+
+r6x against r6v on four nodes, both serving DeepSeek-V4.1-Flash-1017 (2026-10-18),
+measured with the `release` suite in one session (r6x, r6v, r6x again;
+[results](experiments/2026-10-18-r6x/README.md);
+[suite run](manifests/suites/2026-10-19-karmic-kraken-r6x-tp4/)).
+
+| Workload | TP4 r6v | TP4 r6x |
+| --- | ---: | ---: |
+| Source-text prefill, 32K (tok/s) | 5,987 | 5,989 (0.0% ±1.1) |
+| Prefill, 128K | 5,945 | 5,947 (0.0% ±0.7) |
+| Prefill, 256K | 5,681 | 5,680 (0.0% ±0.2) |
+| Prefill, 512K | 5,172 | 5,173 (0.0% ±0.3) |
+| Prefill, 1M | 4,406 | 4,407 (0.0% ±0.6) |
+| Decode step time, geometric mean of 20 shapes | | **-2.5%** ±0.15 |
+| Decode, 16 streams (tok/s) | 241.7 | 250.3 (**+3.6%** ±0.9) |
+| Decode, 8 streams | 184.4 | 191.5 (**+3.8%** ±1.1) |
+| Poisson arrivals at 0.7 req/s, output (tok/s) | 180.4 | 180.4 (0.0% ±17) |
+| One conversation at a time (tok/s, `single-stream`) | 71.0 | 74.1 (+4.5% ±4.5; TTFT p50 0.10 s) |
+
+All 256 greedy responses are identical to r6v's; acceptance length is level (2.27).
+
+r6x at 1M context against r6v at 512K on three nodes, both serving
+DeepSeek-V4.1-Flash-1017 (2026-10-19), measured with the `release-tp3` suite in one
+session (r6x, r6v, r6x again;
+[results](experiments/2026-10-19-r6x-tp3-1m/README.md);
+[suite run](manifests/suites/2026-10-19-karmic-kraken-r6x-tp3/)). The suite's prefill
+stops at 500K; one cold 1,000,000-token prefill was measured on its own.
+
+| Workload | TP3 r6v (512K) | TP3 r6x (1M) |
+| --- | ---: | ---: |
+| Source-text prefill, 32K (tok/s) | 4,425 | 4,465 (+0.9% ±0.9) |
+| Prefill, 128K | 4,357 | 4,390 (**+0.8%** ±0.7) |
+| Prefill, 256K | 4,167 | 4,196 (**+0.7%** ±0.3) |
+| Prefill, 500K | 3,810 | 3,835 (**+0.7%** ±0.3) |
+| Prefill, 1M (one cold run) | | 3,227 (310 s) |
+| Decode step time, geometric mean of 14 shapes | | **-1.3%** ±0.14 |
+| Decode, 8 streams (tok/s) | 147.1 | 152.7 (**+3.8%** ±1.5) |
+| Decode, 4 streams | 111.5 | 116.0 (**+4.0%** ±1.9) |
+| Poisson arrivals at 0.42 req/s, output (tok/s) | 117.6 | 118.3 (+0.7% ±22) |
+| One conversation at a time (tok/s, `single-stream`) | 57.0 | 59.7 (+4.7% ±6.3) |
+| KV pool | 2,845,543 tokens (5.43x 512K) | 4,765,898 tokens (4.55x 1M) |
+
+All 256 greedy responses are identical to r6v's. During the cold 1M prefill dgx1's
+lowest MemAvailable was 5.93 GiB, above its 3 GiB steady guard.
 
 r6v against r6n on four nodes, both serving DeepSeek-V4.1-Flash-1017 (2026-10-17),
 measured with the `release` suite in one session (r6v, r6n on its production ring
@@ -501,6 +619,42 @@ threshold), which moves acceptance from sample to sample. Report:
 [decode, prefill, prefix cache, and admission](manifests/benchmarks/2026-09-29-karmic-kraken-r5l.json).
 See [Benchmarking](#benchmarking) to reproduce them.
 
+## GLP steering (optional, off by default)
+
+The promoted vLLM series carries patch `0181`
+(`experiments/2026-10-17-r6v/vllm/0181-DeepSeek-V4.1-weightless-GLP-projective-steering-o.patch`),
+which serves an optional [weightless](https://github.com/msuiche/weightless) GLP control vector: a small GGUF
+sidecar of per-layer unit directions (`glp.mode=project`, hook `residual_stream_post_layer`; the format spec is
+[`docs/spec/GLP.md`](https://github.com/msuiche/weightless/blob/main/docs/spec/GLP.md) there), projected off the
+residual stream after every steered decoder layer, prefill and decode. The published vector for the 1017
+checkpoint is
+[`msuiche/DeepSeek-V4.1-Flash-1017-abliterated-cyber-GLP-39-L1-39-a0.75`](https://huggingface.co/msuiche/DeepSeek-V4.1-Flash-1017-abliterated-cyber-GLP-39-L1-39-a0.75)
+(39 layers, alpha_default 0.75, width 5120). With `WEIGHTLESS_STEER_PATH` unset the patch is inert: the loader
+never runs, and the traced graphs and numerics are stock.
+
+Steering is a **build-time configuration**, not a runtime toggle: the patch enters the
+prepared vLLM source only when a vector is configured at `build prepare`/launch time.
+An image built without steering is byte-identical to stock — zero extra kernels, zero
+extra launches, same traced graph. To serve steered, place the same file at the same
+path on every node and add to `config/cluster.json` (site-local copies are
+git-ignored, as for the node map):
+
+```json
+"environment": { "WEIGHTLESS_STEER_PATH": "/cache/vectors/glp-1017.gguf" },
+"mounts": [["/path/on/every/node/vectors", "/cache/vectors", "ro"]]
+```
+
+`WEIGHTLESS_STEER_ALPHA` overrides the file's `glp.alpha_default`; `WEIGHTLESS_STEER_LAYERS` restricts to a
+comma list of zero-based layer ids. The apply site on this tree is the model loop's pending FFN write — the only
+hidden-width post-layer surface, since the mHC fold is deferred to the next layer's fused post/pre call and is
+linear in the write (the same anchor the published vLLM-lane DSV4 numbers were measured at). Fail-closed: a
+missing file, or a vector the engine cannot apply exactly (wrong mode, hook, width or layer range; rank > 1;
+alpha multipliers), refuses the boot instead of serving unsteered. The DSpark drafter is not steered; the
+verifier is, so acceptance can dip. Validate a file without booting:
+`WEIGHTLESS_STEER_PATH=<file> python3 scripts/hotfix-dsv41-steering.py --check` (the same loader the engine
+runs; needs torch). No steered benchmark numbers exist yet; steering changes the replies — that is its point —
+so a steered candidate would be measured as its own experiment, not promoted by default.
+
 ## Names
 
 The project was `spark3-vllm-ds41f` until 2026-10-05. The former GitHub name
@@ -611,7 +765,9 @@ policy boundary are documented in [docs/recovery.md](docs/recovery.md).
 
 ## Benchmarking
 
-`bin/spark bench` measures the live service from the head node and writes one
+A release is benchmarked against the previous one with servebench suites in a lab session:
+[docs/release-benchmark.md](docs/release-benchmark.md) has the commands. `bin/spark bench`
+measures the live service from the head node and writes one
 self-contained report to `results/private/bench/<UTC time>/bench.json`
 (`--output` to change). By default it is a quick check of about six minutes:
 the quality gate and every decode point with three or four samples each.
@@ -644,9 +800,9 @@ Suites of the full run, in order (`--suites` selects a subset):
   With `--full`, each point keeps sampling until its 95% confidence interval
   is within `--precision` (2%) of the mean, between `--min-samples` (6) and
   `--max-samples` (40) samples; the quick default takes 3-4.
-  Single boots of one configuration differ by about 3%, because adaptive
-  verification profiles its costs at startup, so effects smaller than that
-  need several boots per arm.
+  Before r6x, single boots of one configuration differed by about 3%, because
+  adaptive verification profiled its costs at startup; since r6x nothing is timed
+  at boot and the same build repeats within about 0.4%.
   `--decode-cases` selects other cases. `prose-nothink`, `code-nothink` and
   `json-nothink` turn reasoning off to measure the answer itself. The
   `portable` group (`count`, `explain`, `tasks`, `rows`, `math`, `chat`,
@@ -754,6 +910,31 @@ Canonical vLLM main is parked; the serving sources are Local Inference Lab's
 `integration/karmic-kraken-beta` vLLM and B12X, TileLang, DeepSeek's
 TileKernels and sparknet, with the local patch series
 ([docs/upstreams.md](docs/upstreams.md)).
+
+## Acknowledgements
+
+The GLP steering patch rides on, and thanks:
+
+- [Local Inference Lab](https://github.com/local-inference-lab): the
+  `integration/karmic-kraken-beta` vLLM branch and the B12X kernel and RoCE
+  collective stack the serving image is built from, including the
+  compressed-sparse-MLA attention kernels. B12X's RoCEnante one-shot
+  collectives are by [@original-el8](https://github.com/original-el8) and
+  [@lukealonso](https://github.com/lukealonso); B12X is archived and
+  continues in [FlashInfer](https://github.com/flashinfer-ai/flashinfer)
+  (`flashinfer/experimental/b12x`).
+- [christopherowen/dgx-spark-networking](https://github.com/christopherowen/dgx-spark-networking)
+  (sparknet): the one-shot collectives the TileLang kernel family uses — a
+  vendored derivative of B12X's RoCEnante with switchless-routing extensions.
+- TileLang, TileKernels, FlashInfer, NCCL and CUTLASS: the pinned kernel
+  stack in `upstreams.lock.json`.
+- DeepSeek-AI: DeepSeek-V4.1-Flash-1017 and its Engram tables (MIT).
+- [weightless](https://github.com/msuiche/weightless) by Matt Suiche: the GLP
+  (GGUF Layer Projection) format and fail-closed reader discipline
+  ([`docs/spec/GLP.md`](https://github.com/msuiche/weightless/blob/main/docs/spec/GLP.md)),
+  the hotfix lineage the patch is ported from, and the published
+  [GLP-39 vector](https://huggingface.co/msuiche/DeepSeek-V4.1-Flash-1017-abliterated-cyber-GLP-39-L1-39-a0.75)
+  for the 1017 checkpoint (MIT, distributed separately).
 
 ## License
 

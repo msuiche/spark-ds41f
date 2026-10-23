@@ -1,0 +1,35 @@
+{
+ "experiment": "experiments/2026-10-19-prefill-budget-tp3",
+ "run": "prefill-budget-tp3",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": "experiments/2026-10-19-prefill-budget-tp3/suite.json",
+   "arms": [
+    {
+     "config": "skip-4096-tp3.json",
+     "label": "b4096"
+    },
+    {
+     "config": "ports-4096-tp3.json",
+     "label": "ports4096"
+    },
+    {
+     "config": "skip-6144-tp3.json",
+     "label": "b6144"
+    },
+    {
+     "config": "skip-8192-tp3.json",
+     "label": "b8192"
+    },
+    {
+     "config": "skip-4096-tp3.json",
+     "label": "b4096-again"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+x203: 738 ids (prompt 46, reply 692); 737 predicted positions
+
+by 64-position bin (absolute position of the predicted token):
+     0-  63  n  63  median 0.064  p90 0.667  max  5.433  top-1 agree  85.7%  over 3 nats 1
+    64- 127  n  64  median 0.041  p90 0.166  max  0.689  top-1 agree  93.8%  over 3 nats 0
+   128- 191  n  64  median 0.036  p90 0.226  max  0.733  top-1 agree  89.1%  over 3 nats 0
+   192- 255  n  64  median 0.032  p90 0.187  max  0.775  top-1 agree  90.6%  over 3 nats 0
+   256- 319  n  64  median 0.019  p90 0.209  max  1.333  top-1 agree  98.4%  over 3 nats 0
+   320- 383  n  64  median 0.013  p90 0.145  max  0.491  top-1 agree  93.8%  over 3 nats 0
+   384- 447  n  64  median 0.028  p90 0.269  max  1.405  top-1 agree  90.6%  over 3 nats 0
+   448- 511  n  64  median 0.032  p90 0.196  max  0.436  top-1 agree  93.8%  over 3 nats 0
+   512- 575  n  64  median 0.034  p90 0.163  max  0.561  top-1 agree  95.3%  over 3 nats 0
+   576- 639  n  64  median 0.022  p90 0.196  max  0.446  top-1 agree  93.8%  over 3 nats 0
+   640- 703  n  64  median 0.023  p90 0.257  max  0.670  top-1 agree  90.6%  over 3 nats 0
+   704- 767  n  34  median 0.018  p90 0.094  max  0.471  top-1 agree  97.1%  over 3 nats 0
+
+before the 128-token window ends (p < 128):  n 127  median 0.047  p90 0.311  max  5.433  top-1 agree  89.8%  over 3 nats 1
+past it (p >= 128):                       n 610  median 0.026  p90 0.215  max  1.405  top-1 agree  93.1%  over 3 nats 0
+
+predictions from rows whose reference sink column is >= 20,000 (row p predicts p+1):
+  row  655 (reply  609) sink  46,848: next-token gap 0.002 (served -0.011, reference -0.009), top-1 agree
+  row  727 (reply  681) sink  33,280: next-token gap 0.002 (served -0.558, reference -0.556), top-1 agree
+  row  734 (reply  688) sink  38,912: next-token gap 0.039 (served -0.266, reference -0.228), top-1 agree
+
+largest gaps: p 16 (5.43), p 27 (2.57), p 17 (2.22), p 19 (1.90), p 10 (1.48), p 404 (1.40), p 257 (1.33), p 4 (0.84)

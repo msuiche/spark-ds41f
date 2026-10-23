@@ -1,0 +1,6 @@
+{
+ "notes": "The CED gates' ports arm (TileLang CED ports without the skip) at production's 4,096: the no-skip reference for the skip's 1M gain and stall.",
+ "extends": {
+  "config": "experiments/2026-10-19-ced-gates/ports-tp3.json"
+ }
+}

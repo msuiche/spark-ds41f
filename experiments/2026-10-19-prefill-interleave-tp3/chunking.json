@@ -1,0 +1,44 @@
+{
+ "experiment": "experiments/2026-10-19-prefill-interleave-tp3",
+ "run": "prefill-chunking-determinism",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "bench": false,
+   "bracket": false,
+   "extras": [
+    [
+     "experiments/2026-10-12-r6g/token_determinism_text.py",
+     [
+      "--tokens",
+      "192",
+      "--long-lines",
+      "700",
+      "--wide"
+     ],
+     "determinism-700"
+    ],
+    [
+     "experiments/2026-10-12-r6g/token_determinism_text.py",
+     [
+      "--tokens",
+      "192",
+      "--long-lines",
+      "2200",
+      "--wide"
+     ],
+     "determinism-2200"
+    ]
+   ],
+   "arms": [
+    {
+     "config": "skip-6144-i1-tp3.json",
+     "label": "b6144"
+    }
+   ]
+  }
+ ]
+}

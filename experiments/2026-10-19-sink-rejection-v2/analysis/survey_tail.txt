@@ -1,0 +1,8 @@
+ordinary text: 358,785 generated tokens (default 256 requests, extra 128 requests)
+rows at or above: 20,000: 526, 30,000: 285, 40,000: 116, 50,000: 24, 60,000: 3, 70,000: 0, 80,000: 0
+largest ordinary rows: 62,720, 61,184, 60,928, 55,808, 54,528
+collapse probes (sunk rows): 118,784, 118,272, 116,736
+threshold 70,000: about one false positive per 1 M tokens (tail falling 8x per 10,000)
+threshold 80,000: about one false positive per 8 M tokens (tail falling 8x per 10,000)
+threshold 85,000: about one false positive per 22 M tokens (tail falling 8x per 10,000)
+threshold 90,000: about one false positive per 61 M tokens (tail falling 8x per 10,000)

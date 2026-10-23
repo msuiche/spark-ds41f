@@ -1,0 +1,30 @@
+{
+ "experiment": "experiments/2026-10-20-broadcast-oneshot",
+ "run": "broadcast-tp3-release",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": [
+    "release-tp3",
+    "single-stream"
+   ],
+   "arms": [
+    {
+     "config": "broadcast-tp3-dev.json",
+     "label": "broadcast-tp3"
+    },
+    {
+     "config": "experiments/2026-10-19-r6x-tp3-1m/r6x-tp3-1m-dev-1017.json",
+     "label": "r6x-tp3-1m"
+    },
+    {
+     "config": "broadcast-tp3-dev.json",
+     "label": "broadcast-tp3-again"
+    }
+   ]
+  }
+ ]
+}

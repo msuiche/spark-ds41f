@@ -1,0 +1,27 @@
+{
+ "notes": "broadcast-tp3.json with the dev-mode collective RPC, for the release suite's engine grid.",
+ "extends": {
+  "config": "experiments/2026-10-19-r6x-tp3-1m/r6x-tp3-1m-dev-1017.json"
+ },
+ "set": {
+  "container": {
+   "mounts": [
+    [
+     "{home}/projects/spark-ds41f/cache",
+     "/cache",
+     "rw"
+    ],
+    [
+     "{home}/projects/spark-ds41f/experiments/2026-10-20-broadcast-oneshot/overlay/vllm/distributed/parallel_state.py",
+     "/opt/spark3/candidate/vllm/vllm/distributed/parallel_state.py",
+     "ro"
+    ],
+    [
+     "{home}/projects/spark-ds41f/experiments/2026-10-20-broadcast-oneshot/overlay/vllm/distributed/device_communicators/cuda_communicator.py",
+     "/opt/spark3/candidate/vllm/vllm/distributed/device_communicators/cuda_communicator.py",
+     "ro"
+    ]
+   ]
+  }
+ }
+}

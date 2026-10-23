@@ -1,0 +1,43 @@
+{
+ "experiment": "experiments/2026-10-19-prefill-interleave-tp3",
+ "run": "prefill-interleave-tp3",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": "experiments/2026-10-19-prefill-interleave-tp3/suite.json",
+   "arms": [
+    {
+     "config": "skip-4096-i1-tp3.json",
+     "label": "b4096-i1"
+    },
+    {
+     "config": "skip-4096-i2-tp3.json",
+     "label": "b4096-i2"
+    },
+    {
+     "config": "skip-4096-i3-tp3.json",
+     "label": "b4096-i3"
+    },
+    {
+     "config": "skip-8192-i1-tp3.json",
+     "label": "b8192-i1"
+    },
+    {
+     "config": "skip-8192-i2-tp3.json",
+     "label": "b8192-i2"
+    },
+    {
+     "config": "skip-8192-i3-tp3.json",
+     "label": "b8192-i3"
+    },
+    {
+     "config": "skip-4096-i1-tp3.json",
+     "label": "b4096-i1-again"
+    }
+   ]
+  }
+ ]
+}

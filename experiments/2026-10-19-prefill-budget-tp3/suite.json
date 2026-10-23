@@ -1,0 +1,44 @@
+{
+ "name": "prefill-budget-tp3",
+ "version": 1,
+ "description": "A long-prefill budget's cost and gain on TP3: release-tp3's prefill sizes, what seven decoding streams wait during a cold 131K prefill, and three cold 1M prefills (the run's memory watch records dgx1's lowest MemAvailable).",
+ "steps": [
+  {
+   "id": "prefill",
+   "command": "prefill",
+   "args": {
+    "sizes": [
+     32768,
+     131072,
+     262144,
+     500000
+    ],
+    "repeats": 3
+   }
+  },
+  {
+   "id": "stall",
+   "command": "stall",
+   "args": {
+    "sizes": [
+     131072
+    ],
+    "streams": 7,
+    "max_tokens": 16384,
+    "warmup": 20,
+    "tail": 2,
+    "repeats": 3
+   }
+  },
+  {
+   "id": "prefill-1m",
+   "command": "prefill",
+   "args": {
+    "sizes": [
+     1000000
+    ],
+    "repeats": 3
+   }
+  }
+ ]
+}

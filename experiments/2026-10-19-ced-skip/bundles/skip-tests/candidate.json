@@ -1,0 +1,58 @@
+{
+  "description": "The CED skip's tests and the release-gated CED files against the skip on the TileLang CED ports.",
+  "image": "vllm-ds41f-kkref:19f2c20ed4d6-r6x",
+  "env": {
+    "HF_HUB_OFFLINE": "1",
+    "TILELANG_CACHE_DIR": "/c/tilelang-postlaunch",
+    "VLLM_DS41_KERNEL_BACKEND": "tilelang",
+    "PYTHONPATH": "/b"
+  },
+  "workdir": "/opt/spark3/candidate/vllm",
+  "argv": [
+    "-c",
+    "import subprocess,sys\nsys.exit(subprocess.run([sys.executable,'-m','pytest','-q','-rfEs','-p','no:cacheprovider','--noconftest','-p','prepare_fixtures','--basetemp','/c/pytest-skip-tests','tests/kernels/test_deepseek_v41_tilelang_ced.py','tests/kernels/test_deepseek_v41_tilelang_metadata.py','tests/v1/attention/test_b12x_v41_ced_metadata.py','tests/models/test_deepseek_v4_1_ced_model.py','tests/kernels/moe/test_deepseek_v41_tilelang_router.py'],timeout=3000).returncode)"
+  ],
+  "verdict": "exit",
+  "mounts": [
+    [
+      "prepare_fixtures.py",
+      "/b/prepare_fixtures.py"
+    ],
+    [
+      "ced_reference.py",
+      "/opt/spark3/candidate/vllm/benchmarks/kernels/ced_reference.py"
+    ],
+    [
+      "tilelang_ced.py",
+      "/opt/spark3/candidate/vllm/vllm/models/deepseek_v4_1/tilelang/ced.py"
+    ],
+    [
+      "ced.py",
+      "/opt/spark3/candidate/vllm/vllm/models/deepseek_v4_1/ced.py"
+    ],
+    [
+      "test_metadata.py",
+      "/opt/spark3/candidate/vllm/tests/kernels/test_deepseek_v41_tilelang_metadata.py"
+    ],
+    [
+      "test_state.py",
+      "/opt/spark3/candidate/vllm/tests/v1/attention/test_b12x_v41_ced_metadata.py"
+    ],
+    [
+      "test_ced_model.py",
+      "/opt/spark3/candidate/vllm/tests/models/test_deepseek_v4_1_ced_model.py"
+    ],
+    [
+      "test_router.py",
+      "/opt/spark3/candidate/vllm/tests/kernels/moe/test_deepseek_v41_tilelang_router.py"
+    ],
+    [
+      "test_ced.py",
+      "/opt/spark3/candidate/vllm/tests/kernels/test_deepseek_v41_tilelang_ced.py"
+    ],
+    [
+      "model_state.py",
+      "/opt/spark3/candidate/vllm/vllm/models/deepseek_v4_1/nvidia/model_state.py"
+    ]
+  ]
+}

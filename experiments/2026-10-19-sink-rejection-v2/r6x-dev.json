@@ -1,0 +1,12 @@
+{
+ "notes": "Production TP3 (r6x at 1M) with the dev-mode collective RPC, for the screen suite's engine grid.",
+ "extends": {
+  "config": "config/cluster.json",
+  "shape": "tp3-triangle"
+ },
+ "set": {
+  "environment": {
+   "VLLM_SERVER_DEV_MODE": "1"
+  }
+ }
+}

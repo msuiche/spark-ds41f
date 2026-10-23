@@ -24,7 +24,7 @@ from pathlib import Path
 
 SCHEMA = "servebench-suite/1"
 BUILTIN = Path(__file__).with_name("suites")
-COMMANDS = ("model", "engine", "run", "prefill")
+COMMANDS = ("model", "engine", "run", "prefill", "stall")
 
 
 def load(name: str) -> dict:

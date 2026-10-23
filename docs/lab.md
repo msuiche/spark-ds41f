@@ -219,6 +219,10 @@ stopped containers are kept; the next boot's `cluster start --replace` replaces 
 Set `"remove_stopped": true` on a job to remove them as well (`cluster stop --remove`).
 `run --dry-run` prints the production profile and each stop command.
 
+A `profile` job can replace a workload's default arguments, for example
+`"workload_args": {"prefill": ["--tokens", "131072"]}` for a cold 128K profile.
+Other workloads retain their defaults.
+
 Every arm must use the production profile's node map. `boot` refuses any other
 node set before launch, because a window cannot recable the fabric.
 
@@ -274,7 +278,9 @@ Compile caches persist per node in `~/.cache/spark-lab/compile`.
 ## Release comparison
 
 Measure a candidate against the previous release the same way every time, so a
-change in the numbers means a change in the release, not in the method:
+change in the numbers means a change in the release, not in the method. The commands for
+the whole release benchmark (release tests, determinism gate, this comparison) are in
+[release-benchmark.md](release-benchmark.md).
 
 ```json
 {"kind": "measure", "profile": "release", "bracket": false,
@@ -313,7 +319,8 @@ What the rules guard against (each found the hard way, 2026-10-11):
   1048576 on a 1M profile is skipped silently. The profile uses 1,000,000.
 - **Repeats.** With two repeats a t interval spans tens of percent. The report uses
   1.96 sd / sqrt(n) for prefill, with three repeats.
-- **Cost curves.** Arms run on pinned DSpark cost curves (`SPARK3_DSPARK_COST_DIR`).
-  To compare step costs, boot each arm with an empty cost directory and
-  `SPARK3_DSPARK_PROFILE_TOKENS=random`. The boot pins its real-row curves there
+- **Draft budget.** Since r6x the DSpark budget is a rule of the inputs (row cost 0.035)
+  and nothing is timed at boot, so arms of r6x and later draft identically. Arms of earlier
+  builds run on pinned DSpark cost curves (`SPARK3_DSPARK_COST_DIR`); to compare their step
+  costs, boot each with an empty cost directory and `SPARK3_DSPARK_PROFILE_TOKENS=random`
   (experiments/2026-10-11-c16-cost).

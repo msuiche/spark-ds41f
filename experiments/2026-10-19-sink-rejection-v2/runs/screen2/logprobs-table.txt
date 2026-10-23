@@ -1,0 +1,85 @@
+verdicts: r6x -> correction, against the run's own repeat (correction -> correction-again)
+metric                             change    ±95%   repeat  verdict
+c1-logprobs: output tok/s          -1.49%   7.91%   -0.04%  same
+c8-logprobs: output tok/s          -0.10%   2.84%   -0.03%  same
+
+######## r6x -> correction
+suite sink-logprobs (968b9dd6883e): r6x -> correction
+
+== c1-logprobs
+metric                          r6x   correction   change    ±95%  verdict
+output tok/s                 56.433       55.592   -1.49%   7.91%  same
+engine steps/s               26.942       26.317   -2.32%   2.68%  same
+output tokens/step            2.101        2.118   +0.85%  10.78%  same
+accepted/draft                1.115        1.115   +0.03%  20.44%  same
+TTFT p50 s                    0.125        0.164  +30.55%          worse (no interval)
+TTFT p99 s                    0.144        0.190  +31.86%          worse (no interval)
+TPOT p50 ms                  17.749       17.843   +0.53%          same (no interval)
+TPOT p99 ms                  20.526       20.746   +1.07%          same (no interval)
+per-user tok/s p50           55.951       55.651   -0.54%          same (no interval)
+
+== c8-logprobs
+metric                          r6x   correction   change    ±95%  verdict
+output tok/s                151.392      151.233   -0.10%   2.84%  same
+engine steps/s                9.125        9.125   +0.00%   3.24%  same
+output tokens/step           16.622       16.602   -0.12%   5.70%  same
+accepted/draft                1.322        1.322   -0.03%  10.26%  same
+TTFT p50 s                    0.364        0.473  +29.97%          worse (no interval)
+TTFT p99 s                    0.458        0.542  +18.48%          worse (no interval)
+TPOT p50 ms                  51.697       51.588   -0.21%          same (no interval)
+TPOT p99 ms                  70.143       67.649   -3.56%          better (no interval)
+per-user tok/s p50           19.343       19.384   +0.21%          same (no interval)
+
+######## r6x -> correction-again
+suite sink-logprobs (968b9dd6883e): r6x -> correction-again
+
+== c1-logprobs
+metric                          r6x correction-a   change    ±95%  verdict
+output tok/s                 56.433       55.567   -1.54%   7.94%  same
+engine steps/s               26.942       26.317   -2.32%   2.73%  same
+output tokens/step            2.101        2.118   +0.81%  10.79%  same
+accepted/draft                1.115        1.114   -0.04%  20.45%  same
+TTFT p50 s                    0.125        0.162  +29.06%          worse (no interval)
+TTFT p99 s                    0.144        0.193  +34.23%          worse (no interval)
+TPOT p50 ms                  17.749       17.859   +0.62%          same (no interval)
+TPOT p99 ms                  20.526       20.759   +1.14%          same (no interval)
+per-user tok/s p50           55.951       55.613   -0.60%          same (no interval)
+
+== c8-logprobs
+metric                          r6x correction-a   change    ±95%  verdict
+output tok/s                151.392      151.192   -0.13%   2.90%  same
+engine steps/s                9.125        9.117   -0.09%   3.44%  same
+output tokens/step           16.622       16.621   -0.01%   6.07%  same
+accepted/draft                1.322        1.319   -0.21%  10.78%  same
+TTFT p50 s                    0.364        0.472  +29.60%          worse (no interval)
+TTFT p99 s                    0.458        0.577  +25.99%          worse (no interval)
+TPOT p50 ms                  51.697       50.810   -1.72%          same (no interval)
+TPOT p99 ms                  70.143       69.653   -0.70%          same (no interval)
+per-user tok/s p50           19.343       19.681   +1.75%          same (no interval)
+
+######## correction -> correction-again
+suite sink-logprobs (968b9dd6883e): correction -> correction-again
+
+== c1-logprobs
+metric                   correction correction-a   change    ±95%  verdict
+output tok/s                 55.592       55.567   -0.04%   8.11%  same
+engine steps/s               26.317       26.317   -0.00%   2.79%  same
+output tokens/step            2.118        2.118   -0.04%  10.83%  same
+accepted/draft                1.115        1.114   -0.07%  20.64%  same
+TTFT p50 s                    0.164        0.162   -1.15%          same (no interval)
+TTFT p99 s                    0.190        0.193   +1.80%          same (no interval)
+TPOT p50 ms                  17.843       17.859   +0.09%          same (no interval)
+TPOT p99 ms                  20.746       20.759   +0.06%          same (no interval)
+per-user tok/s p50           55.651       55.613   -0.07%          same (no interval)
+
+== c8-logprobs
+metric                   correction correction-a   change    ±95%  verdict
+output tok/s                151.233      151.192   -0.03%   2.89%  same
+engine steps/s                9.125        9.117   -0.09%   3.32%  same
+output tokens/step           16.602       16.621   +0.12%   6.00%  same
+accepted/draft                1.322        1.319   -0.18%  10.81%  same
+TTFT p50 s                    0.473        0.472   -0.28%          same (no interval)
+TTFT p99 s                    0.542        0.577   +6.34%          worse (no interval)
+TPOT p50 ms                  51.588       50.810   -1.51%          same (no interval)
+TPOT p99 ms                  67.649       69.653   +2.96%          same (no interval)
+per-user tok/s p50           19.384       19.681   +1.53%          same (no interval)

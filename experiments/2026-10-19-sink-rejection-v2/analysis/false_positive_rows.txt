@@ -1,0 +1,22 @@
+DeepSeek's CPU reference (ref_effort.py of experiments/2026-10-19-effort-line-variants, max_seq_len 512 and a
+teacher-forced continuation added), on the two screen-tp3 model-step responses the correction arm changed:
+the prompt and r6x's greedy reply up to just past the flagged row. |residual[2455]| after the last layer
+(max over the hc streams), and the reference's prediction at that row (top-3 token:logprob, and the
+given next token's logprob and rank).
+
+prompt 27: 'Describe a realistic problem involving ocean tides and work through how to solve it.' (reasoning effort 75, thinking)
+   reply 146  token    223  |2455|    16,768  top-3 26:-0.55, 24:-1.58, 736:-2.56  next 26 lp -0.55 rank 1
+   reply 155  token    223  |2455|    38,400  top-3 19:-0.11, 20:-2.24, 21:-7.89  next 19 lp -0.11 rank 1
+   reply 157  token     16  |2455|    17,280  top-3 23:-0.88, 26:-1.00, 20:-2.02  next 23 lp -0.88 rank 1
+   reply 173  token    223  |2455|    30,848  top-3 27:-0.49, 553:-1.75, 25:-1.93  next 27 lp -0.49 rank 1
+   reply 230  token    223  |2455|    47,360  top-3 19:-0.52, 20:-1.31, 24:-3.03  next 19 lp -0.52 rank 1
+   reply 232  token     16  |2455|    17,920  top-3 -  
+
+prompt 45: 'Explain the trade-offs and risks involved in open-source licensing, with numbers where you can.' (reasoning effort 75, thinking)
+   prompt 29  token    270  |2455|   124,416  top-3 201:-2.26, 5:-2.45, 30:-2.85  next 7629 lp -14.63 rank 37200
+   prompt 43  token    440  |2455|   115,712  top-3 201:-2.32, 5:-2.49, 30:-2.76  next 588 lp -9.75 rank 1385
+    reply 97  token  11389  |2455|     9,472  top-3 16:-0.18, 339:-1.78, 10796:-10.67  next 16 lp -0.18 rank 1
+   reply 158  token    939  |2455|    39,168  top-3 22:-0.06, 21:-2.94, 23:-4.95  next 22 lp -0.06 rank 1
+   reply 198  token    939  |2455|    10,752  top-3 22:-0.01, 21:-4.64, 23:-8.66  next 22 lp -0.01 rank 1
+   reply 236  token    939  |2455|    51,968  top-3 21:-0.04, 23:-3.83, 22:-4.11  next 21 lp -0.04 rank 1
+

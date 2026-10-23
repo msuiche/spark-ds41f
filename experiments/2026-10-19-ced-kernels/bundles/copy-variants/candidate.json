@@ -1,0 +1,39 @@
+{
+  "description": "CED copy variants and the request kernels at the flagged shapes, against Triton.",
+  "image": "vllm-ds41f-kkref:19f2c20ed4d6-r6x",
+  "env": {
+    "HF_HUB_OFFLINE": "1",
+    "TILELANG_CACHE_DIR": "/c/tilelang-postlaunch",
+    "VLLM_DS41_KERNEL_BACKEND": "tilelang"
+  },
+  "workdir": "/opt/spark3/candidate/vllm",
+  "argv": [
+    "/b/placement.py"
+  ],
+  "mounts": [
+    [
+      "ced.py",
+      "/opt/spark3/candidate/vllm/vllm/models/deepseek_v4_1/tilelang/ced.py"
+    ],
+    [
+      "bench.py",
+      "/b/bench.py"
+    ],
+    [
+      "variants.py",
+      "/b/variants.py"
+    ],
+    [
+      "ced_reference.py",
+      "/opt/spark3/candidate/vllm/benchmarks/kernels/ced_reference.py"
+    ],
+    [
+      "aa.py",
+      "/b/aa.py"
+    ],
+    [
+      "placement.py",
+      "/b/placement.py"
+    ]
+  ]
+}

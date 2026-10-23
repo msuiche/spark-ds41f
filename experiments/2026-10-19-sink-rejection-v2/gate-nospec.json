@@ -1,0 +1,40 @@
+{
+ "experiment": "experiments/2026-10-19-sink-rejection-v2",
+ "run": "sink-rejection-v2-gate-nospec",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "bench": false,
+   "bracket": false,
+   "extras": [
+    [
+     "probes.py",
+     [
+      "--nodes",
+      "dgx1,dgx2,dgx3",
+      "--port",
+      "8001"
+     ],
+     "probes"
+    ],
+    [
+     "identity.py",
+     [
+      "--port",
+      "8001"
+     ],
+     "identity"
+    ]
+   ],
+   "arms": [
+    {
+     "config": "correction-nospec.json",
+     "label": "correction-nospec"
+    }
+   ]
+  }
+ ]
+}

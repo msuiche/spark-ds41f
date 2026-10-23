@@ -1,0 +1,41 @@
+d027: 'Describe a realistic problem involving ocean tides and work ' served 1024 tokens; prompt ids equal: True; reference covers reply tokens 0-232
+  reply  155  served  41,728  reference  38,400  ratio  1.09  '8 m, semidiurnal tidal amplitude[ ]1.5 m,'
+  reply  173  served  23,808  reference  30,848  ratio  0.77  '42 h. A vessel needs at least[ ]9.2 m depth'
+  reply  175  served  22,016  reference  14,144  ratio  1.56  '. A vessel needs at least 9[.]2 m depth over a'
+  reply  230  served  51,456  reference  47,360  ratio  1.09  ' a ramp that can tolerate water level between[ ]1.0 and '
+  reply  237  served  36,608  (past the reference) ' between 1.0 and 2[.]5 m above chart datum'
+  reply  258  served  56,064  (past the reference) ' modeled by h(t)=1.8[+]1.2 cos('
+  reply  355  served  40,448  (past the reference) ' water depth over a sill is at least[ ]4.0 m.'
+  reply  367  served  49,408  (past the reference) ' m. Chart datum depth at sill is[ ]2.5 m.'
+  reply  369  served  25,344  (past the reference) ' Chart datum depth at sill is 2[.]5 m. Tide is'
+  reply  385  served  21,248  (past the reference) 'urnal, predicted by h(t)=1[.]2 + 1.'
+  reply  745  served  45,568  (past the reference) ' and amplitude to avoid negative: h(t[)=]1.5+1'
+  reply  749  served  46,848  (past the reference) ' negative: h(t)=1.5[+]1.2 cos(...'
+  reply  764  served  46,336  (past the reference) " Need threshold. Let's choose chart depth[ ]2.0, required"
+  reply  771  served  27,008  (past the reference) ' depth 2.0, required depth[ ]3.8 => h'
+  reply  773  served  40,704  (past the reference) '2.0, required depth 3[.]8 => h≥1'
+  reply  942  served  23,680  (past the reference) ': For a small harbor basin of area[ ]1.5 km²'
+  reply  955  served  27,520  (past the reference) '², tide height h(t)=1[.]5+1.2'
+  reply 1003  served  20,736  (past the reference) ' A coastal lagoon has water surface area A[=]2.0×10'
+d045: 'Explain the trade-offs and risks involved in open-source lic' served 1024 tokens; prompt ids equal: True; reference covers reply tokens 0-238
+  reply  158  served  23,040  reference  39,168  ratio  0.59  ', AI? Numbers: OpenLogic [202]4? Black Duck O'
+  reply  236  served  53,504  reference  51,968  ratio  1.03  '; 74% high-risk? [202]3: 96%'
+  reply  308  served  33,024  (past the reference) "mm. Let's verify memory: [202]4 OSSRA:"
+  reply  376  served  35,840  (past the reference) '-compliant licenses?" Maybe. [202]3: 96%'
+  reply  497  served  36,096  (past the reference) 'License share: WhiteSource/Mend [202]3? Top licenses:'
+  reply  529  served  42,496  (past the reference) ' ~? GitHub? Synopsys [202]4: MIT 26'
+  reply  559  served  26,240  (past the reference) '10%, GPL 3.0[ ]6%, BSD 3'
+  reply  664  served  20,352  (past the reference) 'Costs: compliance program: small company[ $]10k-$50k'
+  reply  733  served  22,016  (past the reference) 'yleft-tainted component can be[ ]10x-100x'
+x203: 'Describe a realistic problem involving beekeeping and work t' served 1024 tokens; prompt ids equal: True; reference covers reply tokens 0-691
+  reply  609  served  51,200  reference  46,848  ratio  1.09  ' August after honey harvest.\n- Hive[ ]3 has fewer bees,'
+  reply  681  served  48,384  reference  33,280  ratio  1.45  ' from each hive. Results: H1[ ]1.0%, H'
+  reply  688  served  62,720  reference  38,912  ratio  1.61  '1 1.0%, H2[ ]1.3%, H'
+  reply  695  served  29,312  (past the reference) '2 1.3%, H3[ ]4.7%, H'
+  reply  702  served  32,384  (past the reference) '3 4.7%, H4[ ]2.3%, H'
+  reply  709  served  38,144  (past the reference) '4 2.3%, H5[ ]0.7%, H'
+  reply  711  served  25,216  (past the reference) '2.3%, H5 0[.]7%, H6 '
+  reply  716  served  35,840  (past the reference) '5 0.7%, H6[ ]3.0%. Threshold'
+  reply  871  served  21,632  (past the reference) ' 22-27°C, nights[ ]12-16°C'
+
+9 rows compared: served/reference median 1.09, range 0.59-1.61

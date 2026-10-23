@@ -1,0 +1,73 @@
+2026-10-19, dgx4 (idle, not in the serving set), runs/run-tests.sh against
+vllm-ds41f-kkref:19f2c20ed4d6-r6x. The image's vLLM tree is 4d6851c8, the tree of r6x-candidate
+f3b58ed9d, the candidate's base. The candidate's changed and new files (29 + 2 test files) are mounted
+over the image's sources (run-tests.sh sync). --network none, HF_HUB_OFFLINE=1, with
+facebook/opt-125m's json/txt files (fetched for v1) mounted for the scheduler suites.
+--confcutdir=tests/v1 skips the root conftest (tblib is not in the image). dgx4's own GB10 for the GPU
+runs; no cluster node touched. Logs on dgx4: ~/spark-lab/sink-rejection-v2/logs.
+
+Final runs (cpu-9.log, gpu-8.log; vLLM sink-rejection-v2 at 616d1a28d, one commit on f3b58ed9d)
+
+  run-tests.sh cpu
+    tests/v1/core/test_sink_draft_zero.py (new; scheduler and frontend, sync and async)   43 passed
+    existing: tests/v1/core/test_output.py, test_repetition_detection.py,
+              tests/v1/engine/test_output_processor.py              27 passed, 2 failed, 33 errors
+    V4.1/V4 tokenizers and parsers (5 files)                                              235 passed
+
+  run-tests.sh gpu
+    tests/v1/worker/test_gpu_sink.py (new; kernels, policy, collapse sequence, warmup)    18 passed
+    existing sampling / verification / drafter-input suites (14 files: gumbel sample,
+      rejection sampler chunking and i64, sampler flags, dead rows, draft tokens handler,
+      async verified draft counts, input batch v2, rejection sampler utils, synthetic
+      rejection sampler, DFlash prepare inputs, adaptive verification, V1 rejection
+      sampler and sampler)                                       278 passed, 5 failed, 1 skipped
+    tests/v1/core/test_scheduler.py, test_async_scheduler.py               180 passed, 40 failed
+
+Untouched image (baseline-1.log, run-tests.sh baseline): the same existing suites give
+27 passed, 2 failed, 33 errors / 278 passed, 5 failed, 1 skipped / 180 passed, 40 failed. The 80
+failures and errors (offline-failures.txt) are the same tests in both, with none on one side only:
+  73 offline: 33 output-processor tests load a tokenizer, and 40 scheduler tests build a
+     ModelConfig for a model that is not cached (39 for llava-1.5-7b);
+  2 environment: the output processor's two async request-collector tests need pytest-asyncio,
+     which the image lacks;
+  5 failing in the image as built: test_gpu_input_batch_v2's boundary restore (4, a test double
+     lacks get_recurrent_checkpoint_fresh) and test_gpu_sampler_flags's precompiled top-p kernel
+     (1, compiled after the warmup).
+
+The new suites cover:
+  CPU, scheduler with a scripted worker playing the V2 runner's side (sync and async scheduling):
+    the collapse sequence with draft zero rejected (no drafts, 1, 5 drafts) and with a drafter cut;
+    fallthrough past the alternates; a rejection in the middle of a 3-request batch, neighbours
+    identical to a run without it; a request with zero drafter tokens beside one with drafts; the
+    computed-token and placeholder accounting through a rejection; a held EOS and stop token
+    committed unverified; max-tokens 1, 2, 4 (no decode step after a 1-token prefill); stops_on_next_token
+    against check_stop; abort while holding; logprobs of committed held tokens and of a rejected
+    one's replacement (its rank and logprob in the original draw, the original top-1); n > 1 with
+    usage summed; streamed deltas with stream interval 1 and 3; the grammar seeing committed tokens
+    only, with one mask per spec token after draft zero; the async back-fill putting draft zero
+    first; preemption under KV pressure with a stale output; sink_metrics surviving the
+    engine-core encoding; zero-flag usage; the default threshold.
+  GPU, through the real kernels: the detector on the reference numbers (sunk 108,032-125,440, clean
+    up to 10,688, the 7,008 prompt sink, NaN) and dead rows; random alternates equal to the draw's
+    next samples (masking the sampled token and redrawing with the same seed and position), greedy
+    alternates following the logits and impossible candidates; the cut and the bit-exact restore,
+    on full logits and on a vocabulary shard; greedy alternates from shards equal to the full
+    logits'; the policy (rejection with neighbours untouched, retries then fallthrough, impossible
+    alternate, drafter cut, prompt row, prefill chunk, detector only); the real request-state update
+    after a rejection; DSpark/DFlash inputs with the rejected request in the middle of a batch; the
+    collapse sequence across steps through the real Sampler and RejectionSampler (block
+    verification), greedy and random, by draft-zero rejection and by drafter cut; a 3-request batch
+    (greedy, greedy, random) whose neighbours commit the same tokens and end in the same request
+    state as without the sink.
+
+0d63e52a3 (cpu-8.log, gpu-7.log), e1c474dca (cpu-7.log, gpu-6.log), 2334b92c0 (cpu-6.log, gpu-5.log, 17 GPU tests), 7f4c7dc8e (cpu-5.log, gpu-4.log), whose column
+capture sat in the generic V4.1 model, and the
+first build, ad9059483 (cpu-3.log, gpu-2.log), gave the same results; so did the slimmed
+tree before a docstring-only edit (cpu-4.log, gpu-3.log).
+
+Earlier runs in this session (cpu-1, cpu-2, gpu-1) found test-side errors in the new suites and three
+failures of existing tests that the candidate caused, all fixed before the final runs: the sink
+attributes were missing on schedulers built without __init__ (two tests), and the draft-zero field was
+read from a SimpleNamespace scheduler output (it is now read only with rejection on). Found in review
+and fixed with them: the warmup's synthetic decode steps now carry draft zero, and their flags are not
+counted.

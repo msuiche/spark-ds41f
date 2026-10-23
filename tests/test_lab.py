@@ -429,6 +429,47 @@ class ProfilePlanTest(unittest.TestCase):
         self.assertEqual(steps[-1]["labels"], ["r5o", "cand"])
         self.assertEqual(steps[-1]["out"], "results/private/determinism/costs3")
 
+    def test_profile_workload_arguments_replace_defaults_without_changing_other_workloads(self) -> None:
+        spec = {"experiment": "e", "run": "long-prefill", "jobs": [{
+            "kind": "profile", "workloads": ["decode", "prefill"],
+            "workload_args": {"prefill": ["--tokens", "131072"]},
+            "arms": [{"config": "cluster-prof.json", "label": "reference"}]}]}
+        steps = lab.plan(spec)
+        profiles = [step for step in steps if step["kind"] == "profile"]
+        self.assertEqual(profiles[0]["argv"][-2:], ["--tokens", "128"])
+        self.assertEqual(profiles[1]["argv"][-2:], ["--tokens", "131072"])
+
+    def test_failed_profile_stops_before_collecting_or_running_another_workload(self) -> None:
+        step = {"config": "profile.json", "label": "candidate", "workload": "prefill",
+                "argv": ["profile.py"], "out": "trace"}
+        with tempfile.TemporaryDirectory() as directory, \
+                mock.patch.object(lab, "ROOT", Path(directory)), \
+                mock.patch.object(lab, "profiler_dir", return_value="/cache/profile"), \
+                mock.patch.object(lab, "nodes_config", return_value={"nodes": [{"name": "dgx1"}]}), \
+                mock.patch.object(lab, "production_configuration", return_value=({}, {}, {})), \
+                mock.patch.object(lab.spark, "repository_path", return_value="/repo"), \
+                mock.patch.object(lab.spark, "run_ssh", return_value=mock.Mock(returncode=0)), \
+                mock.patch.object(lab.subprocess, "run", return_value=mock.Mock(returncode=1)) as run:
+            with self.assertRaisesRegex(RuntimeError, "prefill failed with exit 1"):
+                lab.profile_workload(step)
+            self.assertEqual(run.call_count, 1)
+
+
+    def test_missing_rank_trace_fails_instead_of_claiming_profile_success(self) -> None:
+        step = {"config": "profile.json", "label": "candidate", "workload": "decode",
+                "argv": ["profile.py"], "out": "trace"}
+        with tempfile.TemporaryDirectory() as directory, \
+                mock.patch.object(lab, "ROOT", Path(directory)), \
+                mock.patch.object(lab, "profiler_dir", return_value="/cache/profile"), \
+                mock.patch.object(lab, "nodes_config", return_value={"nodes": [{"name": "dgx1"}]}), \
+                mock.patch.object(lab, "production_configuration", return_value=({}, {}, {})), \
+                mock.patch.object(lab.spark, "repository_path", return_value="/repo"), \
+                mock.patch.object(lab.spark, "run_ssh", return_value=mock.Mock(returncode=0, stdout="0")), \
+                mock.patch.object(lab.time, "sleep"), \
+                mock.patch.object(lab.subprocess, "run", return_value=mock.Mock(returncode=0)):
+            with self.assertRaisesRegex(RuntimeError, "did not settle on every rank"):
+                lab.profile_workload(step)
+
 
 class QueueTest(unittest.TestCase):
     def test_add_validates_and_orders_specs(self) -> None:
@@ -661,6 +702,25 @@ class TelemetryTest(unittest.TestCase):
                          [("VLLM::Worker_TP", 0.9, 0.0), ("engram", 0.25, 1.0)])
         self.assertAlmostEqual(summary["slow_core_share"], 1.02 / 4.62, places=3)
         self.assertEqual(lab.summarize_threads("not json")["samples"], 0)
+        self.assertNotIn("busy_l3", summary)  # a sampler that listed no clusters
+
+    def test_thread_summary_l3_clusters(self) -> None:
+        lines = [json.dumps({"fast": [5, 6, 15, 16], "clusters": [[0, 1, 5, 6], [10, 11, 15, 16]]})]
+        cores = {"proxy": [5, 5, 5, 5], "worker": [15, 15, 6, 15], "engine": [6, 6, 6, 6]}
+        for step in range(4):
+            lines.append(json.dumps({"t": 100.0 + 2 * step, "threads": {
+                "21": ["sparknet-proxy", 2.0 * step, cores["proxy"][step]],
+                "22": ["VLLM::Worker_TP", 1.8 * step, cores["worker"][step]],
+                "23": ["EngineCore", 1.9 * step, cores["engine"][step]]}}))
+        summary = lab.summarize_threads("\n".join(lines))
+        threads = {t["name"]: t for t in summary["busy_threads"]}
+        self.assertEqual((threads["sparknet-proxy"]["l3"], threads["sparknet-proxy"]["l3_share"],
+                          threads["sparknet-proxy"]["core_changes"]), (0, 1.0, 0))
+        # The worker ran two intervals on the second L3 and one on the first, moving twice.
+        self.assertEqual((threads["VLLM::Worker_TP"]["l3"], threads["VLLM::Worker_TP"]["l3_share"],
+                          threads["VLLM::Worker_TP"]["core_changes"]), (1, 0.667, 2))
+        self.assertEqual(summary["busy_l3"], [0, 1])
+        self.assertEqual(summary["l3_clusters"], [[0, 1, 5, 6], [10, 11, 15, 16]])
 
     def test_buddy_free(self) -> None:
         text = ("Node 0, zone      DMA      2      0      0      0      0      1\n"

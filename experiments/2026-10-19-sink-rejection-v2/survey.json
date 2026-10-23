@@ -1,0 +1,48 @@
+{
+ "experiment": "experiments/2026-10-19-sink-rejection-v2",
+ "run": "sink-rejection-v2-survey",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "bench": false,
+   "bracket": false,
+   "extras": [
+    [
+     "survey.py",
+     [
+      "--set",
+      "probes"
+     ],
+     "survey-probes"
+    ],
+    [
+     "survey.py",
+     [
+      "--set",
+      "default"
+     ],
+     "survey-default"
+    ],
+    [
+     "survey.py",
+     [
+      "--set",
+      "extra",
+      "--limit",
+      "128"
+     ],
+     "survey-extra"
+    ]
+   ],
+   "arms": [
+    {
+     "config": "survey-detector.json",
+     "label": "survey"
+    }
+   ]
+  }
+ ]
+}

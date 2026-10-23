@@ -1,0 +1,165 @@
+verdicts: r6x -> correction, against the run's own repeat (correction -> correction-again)
+metric                             change    ±95%   repeat  verdict
+grid: decode geometric mean (15)   +0.17%   0.14%   -0.38%  same
+c8: output tok/s                   +0.12%   1.29%   +0.31%  same
+prefill: prefill 32,768 tok/s      +0.16%   0.78%   -0.69%  same
+prefill: prefill 262,144 tok/s     -0.11%   0.71%   -0.43%  same
+
+######## r6x -> correction
+suite screen-tp3 (476a27f07017): r6x -> correction
+
+== model
+model behaviour: r6x -> correction
+  greedy responses identical: 126/128; the others diverge at token p10/p50/p90 230/230/236
+  acceptance_length           2.245 ->    2.241  -0.18%
+  verified_per_draft          1.957 ->    1.956  -0.06%
+  accepted_per_verified       0.636 ->    0.635  -0.27%
+  acceptance by draft position: 0: 0.697->0.694, 1: 0.576->0.576, 2: 0.549->0.559, 3: 0.594->0.583, 4: 0.603->0.577
+  teacher-forced over 32768 positions in 128 sequences
+    identical distributions 100.00%, top-1 agreement 100.000%
+    KL mean 0.000e+00 (±0.0e+00 over sequences), p99 0.000e+00, max 0.000e+00 nats
+    given-token log-probability change mean +0.00e+00, mean |change| 0.00e+00, max 0.00e+00
+    perplexity 1.31677 -> 1.31677 (+0.000%)
+
+== grid
+metric                              r6x   correction   change    ±95%  verdict
+decode 1x2 rows @4K              22.465       22.485   +0.09%   0.82%  same
+decode 4x8 rows @4K              25.814       25.886   +0.28%   0.82%  same
+decode 8x16 rows @4K             29.095       29.227   +0.45%   0.67%  same
+decode 1x3 rows @4K              22.895       22.834   -0.27%   0.80%  same
+decode 4x12 rows @4K             27.590       27.674   +0.30%   0.80%  same
+decode 8x24 rows @4K             32.310       32.431   +0.37%   0.70%  same
+decode 1x6 rows @4K              24.237       24.190   -0.19%   0.82%  same
+decode 2x12 rows @4K             26.393       26.431   +0.15%   0.84%  same
+decode 4x24 rows @4K             32.223       32.402   +0.56%   0.73%  same
+decode 8x48 rows @4K             37.008       37.066   +0.16%   0.65%  same
+decode 1x3 rows @64K             23.260       23.193   -0.29%   1.07%  same
+decode 8x24 rows @64K            32.216       32.412   +0.61%   0.76%  same
+decode 1x3 rows @256K            23.170       23.108   -0.27%   1.13%  same
+decode 8x24 rows @256K           32.179       32.352   +0.54%   0.75%  same
+decode 1x3 rows @1016K           22.938       22.960   +0.10%   0.93%  same
+decode geometric mean (15)                             +0.17%   0.14%  worse
+intervals hold for all 15 shapes at once (95%, Bonferroni); slow outliers (median + 5 MAD) dropped first: 19
+
+== c8
+metric                          r6x   correction   change    ±95%  verdict
+output tok/s                152.213      152.390   +0.12%   1.29%  same
+engine steps/s                9.207        9.240   +0.36%   2.70%  same
+output tokens/step           16.547       16.508   -0.24%   3.42%  same
+accepted/draft                1.310        1.311   +0.08%   6.58%  same
+TTFT p50 s                    0.358        0.462  +29.05%          worse (no interval)
+TTFT p99 s                    0.441        0.565  +28.00%          worse (no interval)
+TPOT p50 ms                  52.195       51.395   -1.53%          same (no interval)
+TPOT p99 ms                  70.327       69.931   -0.56%          same (no interval)
+per-user tok/s p50           19.159       19.356   +1.03%          same (no interval)
+
+== prefill
+metric                          r6x   correction   change    ±95%  verdict
+prefill 32,768 tok/s       4471.182     4478.549   +0.16%   0.78%  same
+prefill 262,144 tok/s      4188.955     4184.470   -0.11%   0.71%  same
+
+######## r6x -> correction-again
+suite screen-tp3 (476a27f07017): r6x -> correction-again
+
+== model
+model behaviour: r6x -> correction-again
+  greedy responses identical: 126/128; the others diverge at token p10/p50/p90 230/230/236
+  acceptance_length           2.245 ->    2.244  -0.04%
+  verified_per_draft          1.957 ->    1.949  -0.40%
+  accepted_per_verified       0.636 ->    0.638  +0.33%
+  acceptance by draft position: 0: 0.697->0.696, 1: 0.576->0.581, 2: 0.549->0.558, 3: 0.594->0.595, 4: 0.603->0.612
+  teacher-forced over 32768 positions in 128 sequences
+    identical distributions 100.00%, top-1 agreement 100.000%
+    KL mean 0.000e+00 (±0.0e+00 over sequences), p99 0.000e+00, max 0.000e+00 nats
+    given-token log-probability change mean +0.00e+00, mean |change| 0.00e+00, max 0.00e+00
+    perplexity 1.31677 -> 1.31677 (+0.000%)
+
+== grid
+metric                              r6x correction-a   change    ±95%  verdict
+decode 1x2 rows @4K              22.465       22.355   -0.49%   0.81%  same
+decode 4x8 rows @4K              25.814       25.764   -0.19%   0.83%  same
+decode 8x16 rows @4K             29.095       29.083   -0.04%   0.66%  same
+decode 1x3 rows @4K              22.895       22.929   +0.15%   0.90%  same
+decode 4x12 rows @4K             27.590       27.660   +0.25%   0.88%  same
+decode 8x24 rows @4K             32.310       32.210   -0.31%   0.73%  same
+decode 1x6 rows @4K              24.237       24.107   -0.53%   0.82%  same
+decode 2x12 rows @4K             26.393       26.268   -0.47%   0.84%  same
+decode 4x24 rows @4K             32.223       32.216   -0.02%   0.67%  same
+decode 8x48 rows @4K             37.008       36.923   -0.23%   0.69%  same
+decode 1x3 rows @64K             23.260       23.246   -0.06%   1.16%  same
+decode 8x24 rows @64K            32.216       32.148   -0.21%   0.70%  same
+decode 1x3 rows @256K            23.170       23.099   -0.31%   1.12%  same
+decode 8x24 rows @256K           32.179       32.143   -0.11%   0.70%  same
+decode 1x3 rows @1016K           22.938       22.815   -0.54%   0.85%  same
+decode geometric mean (15)                             -0.21%   0.14%  better
+intervals hold for all 15 shapes at once (95%, Bonferroni); slow outliers (median + 5 MAD) dropped first: 19
+
+== c8
+metric                          r6x correction-a   change    ±95%  verdict
+output tok/s                152.213      152.863   +0.43%   1.34%  same
+engine steps/s                9.207        9.257   +0.54%   2.62%  same
+output tokens/step           16.547       16.528   -0.11%   3.38%  same
+accepted/draft                1.310        1.312   +0.17%   6.57%  same
+TTFT p50 s                    0.358        0.465  +29.98%          worse (no interval)
+TTFT p99 s                    0.441        0.543  +23.14%          worse (no interval)
+TPOT p50 ms                  52.195       51.196   -1.92%          same (no interval)
+TPOT p99 ms                  70.327       68.468   -2.64%          same (no interval)
+per-user tok/s p50           19.159       19.526   +1.92%          same (no interval)
+
+== prefill
+metric                          r6x correction-a   change    ±95%  verdict
+prefill 32,768 tok/s       4471.182     4447.700   -0.53%   1.00%  same
+prefill 262,144 tok/s      4188.955     4166.609   -0.53%   0.72%  same
+
+######## correction -> correction-again
+suite screen-tp3 (476a27f07017): correction -> correction-again
+
+== model
+model behaviour: correction -> correction-again
+  greedy responses identical: 128/128
+  acceptance_length           2.241 ->    2.244  +0.15%
+  verified_per_draft          1.956 ->    1.949  -0.34%
+  accepted_per_verified       0.635 ->    0.638  +0.60%
+  acceptance by draft position: 0: 0.694->0.696, 1: 0.576->0.581, 2: 0.559->0.558, 3: 0.583->0.595, 4: 0.577->0.612
+  teacher-forced over 32768 positions in 128 sequences
+    identical distributions 100.00%, top-1 agreement 100.000%
+    KL mean 0.000e+00 (±0.0e+00 over sequences), p99 0.000e+00, max 0.000e+00 nats
+    given-token log-probability change mean +0.00e+00, mean |change| 0.00e+00, max 0.00e+00
+    perplexity 1.31677 -> 1.31677 (+0.000%)
+
+== grid
+metric                       correction correction-a   change    ±95%  verdict
+decode 1x2 rows @4K              22.485       22.355   -0.58%   0.80%  same
+decode 4x8 rows @4K              25.886       25.764   -0.47%   0.88%  same
+decode 8x16 rows @4K             29.227       29.083   -0.49%   0.77%  same
+decode 1x3 rows @4K              22.834       22.929   +0.41%   0.86%  same
+decode 4x12 rows @4K             27.674       27.660   -0.05%   0.88%  same
+decode 8x24 rows @4K             32.431       32.210   -0.68%   0.74%  same
+decode 1x6 rows @4K              24.190       24.107   -0.34%   0.85%  same
+decode 2x12 rows @4K             26.431       26.268   -0.62%   0.78%  same
+decode 4x24 rows @4K             32.402       32.216   -0.57%   0.73%  same
+decode 8x48 rows @4K             37.066       36.923   -0.38%   0.69%  same
+decode 1x3 rows @64K             23.193       23.246   +0.23%   1.19%  same
+decode 8x24 rows @64K            32.412       32.148   -0.81%   0.77%  better
+decode 1x3 rows @256K            23.108       23.099   -0.04%   1.12%  same
+decode 8x24 rows @256K           32.352       32.143   -0.65%   0.73%  same
+decode 1x3 rows @1016K           22.960       22.815   -0.63%   0.89%  same
+decode geometric mean (15)                             -0.38%   0.15%  better
+intervals hold for all 15 shapes at once (95%, Bonferroni); slow outliers (median + 5 MAD) dropped first: 20
+
+== c8
+metric                   correction correction-a   change    ±95%  verdict
+output tok/s                152.390      152.863   +0.31%   1.37%  same
+engine steps/s                9.240        9.257   +0.18%   2.73%  same
+output tokens/step           16.508       16.528   +0.12%   3.44%  same
+accepted/draft                1.311        1.312   +0.09%   6.61%  same
+TTFT p50 s                    0.462        0.465   +0.72%          same (no interval)
+TTFT p99 s                    0.565        0.543   -3.80%          better (no interval)
+TPOT p50 ms                  51.395       51.196   -0.39%          same (no interval)
+TPOT p99 ms                  69.931       68.468   -2.09%          same (no interval)
+per-user tok/s p50           19.356       19.526   +0.88%          same (no interval)
+
+== prefill
+metric                   correction correction-a   change    ±95%  verdict
+prefill 32,768 tok/s       4478.549     4447.700   -0.69%   0.98%  same
+prefill 262,144 tok/s      4184.470     4166.609   -0.43%   0.76%  same

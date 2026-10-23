@@ -1,0 +1,30 @@
+{
+ "experiment": "experiments/2026-10-19-sink-rejection-v2",
+ "run": "sink-rejection-v2-attribution",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "bench": false,
+   "bracket": false,
+   "extras": [
+    [
+     "survey.py",
+     [
+      "--set",
+      "attribution"
+     ],
+     "survey-attribution"
+    ]
+   ],
+   "arms": [
+    {
+     "config": "survey-detector.json",
+     "label": "attribution"
+    }
+   ]
+  }
+ ]
+}

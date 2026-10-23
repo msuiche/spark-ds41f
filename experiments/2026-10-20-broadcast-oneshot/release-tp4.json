@@ -1,0 +1,30 @@
+{
+ "experiment": "experiments/2026-10-20-broadcast-oneshot",
+ "run": "broadcast-tp4-release",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": [
+    "release",
+    "single-stream"
+   ],
+   "arms": [
+    {
+     "config": "broadcast-tp4-dev.json",
+     "label": "broadcast-tp4"
+    },
+    {
+     "config": "experiments/2026-10-18-r6x/r6x-tp4-dev-1017.json",
+     "label": "r6x-tp4-1017"
+    },
+    {
+     "config": "broadcast-tp4-dev.json",
+     "label": "broadcast-tp4-again"
+    }
+   ]
+  }
+ ]
+}

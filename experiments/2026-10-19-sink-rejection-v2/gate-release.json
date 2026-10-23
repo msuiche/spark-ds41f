@@ -1,0 +1,36 @@
+{
+ "experiment": "experiments/2026-10-19-sink-rejection-v2",
+ "run": "sink-rejection-v2-gate",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": [
+    "release-tp3",
+    "single-stream",
+    "sampled",
+    "experiments/2026-10-19-sink-rejection-v2/logprobs.json"
+   ],
+   "arms": [
+    {
+     "config": "correction-dev.json",
+     "label": "correction"
+    },
+    {
+     "config": "r6x-dev.json",
+     "label": "r6x"
+    },
+    {
+     "config": "detector-dev.json",
+     "label": "detector"
+    },
+    {
+     "config": "correction-dev.json",
+     "label": "correction-again"
+    }
+   ]
+  }
+ ]
+}

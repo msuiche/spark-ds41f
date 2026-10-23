@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "promoted_baseline": "2026-10-17-karmic-kraken-r6v",
+  "promoted_baseline": "2026-10-22-spark-ds41f-1022",
   "model": "v41-flash-1017",
   "models": {
     "v41-flash": {
@@ -20,14 +20,14 @@
   },
   "container": {
     "name": "dsv41-karmic-kraken",
-    "image": "vllm-ds41f-kkref:19f2c20ed4d6-r6v",
+    "image": "vllm-ds41f-kkref:19f2c20ed4d6-r6x-glp3",
     "expected_labels": {
-      "local.spark3.vllm.tree": "d11e9836e61bc2b763d6805d3324ec8fb5376360",
+      "local.spark3.vllm.tree": "16385ad845015ea4c9e23b2b745845c7cdee967b",
       "local.spark3.b12x.tree": "1a647a311ca55d45070ab83d60668d9c8fb8886c",
       "local.spark3.nccl.tree": "6af10aa730a64fcee8781d62340a9c9184e79469",
       "local.spark3.tilelang.tree": "222b895d04ee6cd75179155d06e0c0d450636f51",
       "local.spark3.tile_kernels.tree": "cb2fa41c8af290204c81c547ed678ebf957cca53",
-      "local.spark3.sparknet.tree": "f72599fa212e894d67ee114553e628ab05daf2da"
+      "local.spark3.sparknet.tree": "f997a594f03a696897e6ad8e50bb027ed877ebe9"
     },
     "docker_run_args": [
       "--network=host",
@@ -52,11 +52,16 @@
         "{home}/projects/spark-ds41f/cache",
         "/cache",
         "rw"
+      ],
+      [
+        "/home/msuiche/vectors",
+        "/vectors",
+        "ro"
       ]
     ]
   },
   "host": {
-    "home": "/home/swank",
+    "home": "/home/msuiche",
     "memguard_gib": 3,
     "memguard_interval_seconds": 2,
     "startup_memguard_gib": 5,
@@ -83,7 +88,7 @@
     "CUTE_DSL_ARCH": "sm_121a",
     "CUTE_DSL_CACHE_DIR": "/cache/kkref/jit/cute-dsl",
     "FLASHINFER_WORKSPACE_BASE": "/cache/kkref/flashinfer",
-    "GLOO_SOCKET_IFNAME": "enP7s7",
+    "GLOO_SOCKET_IFNAME": "wlP9s9",
     "HF_HOME": "/cache/huggingface",
     "HF_HUB_OFFLINE": "1",
     "MAX_JOBS": "2",
@@ -100,7 +105,7 @@
     "TILELANG_CACHE_DIR": "/cache/kkref/jit/tilelang",
     "TORCHINDUCTOR_CACHE_DIR": "/cache/kkref/jit/torchinductor",
     "TORCH_NCCL_ASYNC_ERROR_HANDLING": "1",
-    "TP_SOCKET_IFNAME": "enP7s7",
+    "TP_SOCKET_IFNAME": "wlP9s9",
     "TRANSFORMERS_OFFLINE": "1",
     "TRITON_CACHE_DIR": "/cache/kkref/jit/triton",
     "VLLM_ALLOW_LONG_MAX_MODEL_LEN": "1",
@@ -117,6 +122,7 @@
     "VLLM_ENGINE_READY_TIMEOUT_S": "3600",
     "VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS": "900",
     "VLLM_L2_PREFETCH_GRID": "2",
+    "VLLM_LATE_ADMISSION_LAYER": "30",
     "VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS": "1",
     "VLLM_MULTI_STREAM_GEMM_TOKEN_THRESHOLD": "1024",
     "VLLM_PLUGINS": "b12x_loader",
@@ -130,7 +136,8 @@
     "SPARK3_DSPARK_PROFILE_TOKENS": "random",
     "SPARKNET_ROCE_PROXY_CPU": "big",
     "VLLM_L2_PREFETCH_KERNELS": "tilelang",
-    "SPARKNET_ROCE_TIMEOUT_MS": "10000"
+    "SPARKNET_ROCE_TIMEOUT_MS": "10000",
+    "WEIGHTLESS_STEER_PATH": "/vectors/glp-1017.gguf"
   },
   "drafts": 5,
   "serve_args": [
@@ -178,7 +185,7 @@
     "--moe-backend",
     "tilelang",
     "--speculative-config",
-    "{\"method\":\"dspark\",\"num_speculative_tokens\":${drafts},\"draft_tensor_parallel_size\":${tensor_parallel_size},\"attention_backend\":\"TILELANG\",\"draft_sample_method\":\"greedy\",\"rejection_sample_method\":\"block\",\"enable_adaptive_verification\":true,\"adaptive_verification_cost_scale\":2.0}",
+    "{\"method\":\"dspark\",\"num_speculative_tokens\":${drafts},\"draft_tensor_parallel_size\":${tensor_parallel_size},\"attention_backend\":\"TILELANG\",\"draft_sample_method\":\"greedy\",\"rejection_sample_method\":\"block\",\"enable_adaptive_verification\":true,\"adaptive_verification_row_cost\":0.035}",
     "--jit-monitor-mode",
     "warn",
     "--compilation-config",
@@ -205,7 +212,7 @@
     "0"
   ],
   "distributed": {
-    "master_addr": "10.0.1.71",
+    "master_addr": "192.168.1.232",
     "master_port": "9999"
   },
   "deployment": {
@@ -220,7 +227,7 @@
   "default_shape": "tp4-ring",
   "shapes": {
     "tp4-ring": {
-      "notes": "Four nodes in a cable ring (two ConnectX-7 paths per neighbour); NCCL settings are sparknet's tp4-ring profile. It schedules on its build's own DSpark cost curves, as TP3 does (since r6v). The embedding and head stay in regular memory: in the carve-out the head lost its L2 reuse (2026-10-12).",
+      "notes": "Four nodes in a cable ring (two ConnectX-7 paths per neighbour); NCCL settings are sparknet's tp4-ring profile. Its DSpark draft budget is a rule of the inputs (row cost 0.035, since r6x): nothing is timed at boot. The embedding and head stay in regular memory: in the carve-out the head lost its L2 reuse (2026-10-12).",
       "nodes": 4,
       "nodes_config": "config/nodes-ring4.local.json",
       "fabric": {
@@ -266,26 +273,26 @@
         "NCCL_RMA_DISABLE": "1",
         "NCCL_RUNTIME_CONNECT": "1",
         "NCCL_SHM_DISABLE": "1",
-        "NCCL_SOCKET_IFNAME": "enP7s7",
+        "NCCL_SOCKET_IFNAME": "wlP9s9",
         "NCCL_SWITCHLESS_BIDIRECTIONAL": "2",
         "NCCL_THREAD_THRESHOLDS": "-2 -2 -2 1 1 1",
         "SPARK3_DISPLAY_CARVEOUT_WEIGHTS": "0",
         "SPARKNET_ROCE_ALLGATHER_MAX_BYTES": "2097152"
       },
-      "benchmark_reference": "manifests/suites/2026-10-17-karmic-kraken-r6v-tp4"
+      "benchmark_reference": "manifests/suites/2026-10-22-spark-ds41f-1022-tp4"
     },
     "tp3-triangle": {
-      "notes": "Three nodes fully cabled (a triangle); NCCL settings are sparknet's tp3-triangle profile. The embedding and head live in the display carve-out, which TP3's KV budget needs (docs/current-state.md).",
+      "notes": "Three nodes fully cabled (a triangle); NCCL settings are sparknet's tp3-triangle profile. The embedding and head live in the display carve-out, which TP3's KV budget needs (docs/current-state.md). Since r6x it serves 1,048,576 tokens with a 4.90625 GiB KV pool (4.55 full 1M contexts), spent from the memory the expert scale codes freed; dgx1's 5 GiB startup guard bounds the pool (experiments/2026-10-19-r6x-tp3-1m).",
       "nodes": 3,
       "nodes_config": "config/nodes.json",
       "fabric": {
         "transport": "oneshot-direct"
       },
       "sizing": {
-        "max_model_len": 524288,
+        "max_model_len": 1048576,
         "max_num_seqs": 8,
         "max_num_batched_tokens": 4096,
-        "kv_cache_memory_bytes": 3758096384,
+        "kv_cache_memory_bytes": 5268045824,
         "prefix_cache_retention_interval": 512
       },
       "environment": {
@@ -310,11 +317,11 @@
         "NCCL_P2P_DISABLE": "1",
         "NCCL_PROTO": "^LL128",
         "NCCL_SHM_DISABLE": "1",
-        "NCCL_SOCKET_IFNAME": "enP7s7",
+        "NCCL_SOCKET_IFNAME": "wlP9s9",
         "SPARK3_DISPLAY_CARVEOUT_WEIGHTS": "1",
         "SPARKNET_ROCE_ALLGATHER_MAX_BYTES": "4194304"
       },
-      "benchmark_reference": "manifests/suites/2026-10-17-karmic-kraken-r6u-tp3"
+      "benchmark_reference": "manifests/suites/2026-10-22-spark-ds41f-1022-tp3"
     },
     "tp3-triangle-4k": {
       "notes": "TP3 on a stock 4 KiB-page kernel without Memory Saver: smaller KV and context (docs/memory-profiles.md).",

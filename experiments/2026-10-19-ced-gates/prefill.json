@@ -1,0 +1,27 @@
+{
+ "experiment": "experiments/2026-10-19-ced-gates",
+ "run": "ced-gates-prefill",
+ "jobs": [
+  {
+   "kind": "sync"
+  },
+  {
+   "kind": "measure",
+   "suite": "experiments/2026-10-19-ced-gates/prefill-suite.json",
+   "arms": [
+    {
+     "config": "skip-tp3.json",
+     "label": "skip"
+    },
+    {
+     "config": "ports-tp3.json",
+     "label": "ports"
+    },
+    {
+     "config": "skip-tp3.json",
+     "label": "skip-again"
+    }
+   ]
+  }
+ ]
+}
