@@ -39,8 +39,15 @@ Files patched, all fail-closed:
 Env vars: WEIGHTLESS_STEER_PATH (.pt {layer: tensor(5120)}),
   WEIGHTLESS_STEER_ALPHA (default 1.0), WEIGHTLESS_STEER_LAYERS,
   DSPARK_STEER_RAW_NORMS, DSPARK_STEER_FOLD_OFF (debug),
-  DSPARK_STEER_CTRL (JSON {"alpha", "steer_path", "steer_layers"},
-  mtime-polled per step), DSPARK_STEER_ACK (ack JSON, rank 0 writes).
+  DSPARK_STEER_CTRL (JSON {"alpha", "steer_path", "steer_layers",
+  "off"}, mtime-polled per step), DSPARK_STEER_ACK (ack JSON, rank 0
+  writes).
+
+Off is stock (the lesson from the r6v hook experiment): until a vector
+arms steering, the fold sites run the tree's own fused path —
+byte-identical to the unpatched tree, zero extra kernels, no CUDA-graph
+delta. The first _ds41_load_steer (boot env or ctrl steer_path) flips
+_ds41_steer_on; ctrl {"off": true} restores the fused path.
 Exit codes: 0 patched (or already patched), 1 anchor mismatch.
 """
 
@@ -243,9 +250,16 @@ def patch_model(path: str) -> None:
         '        if spec.get("steer_path"):\n'
         '            _ds41_load_steer(owner, spec["steer_path"],\n'
         '                             spec.get("steer_layers") or "")\n'
-        '            ack["steer_path"] = spec["steer_path"]\n'
+        '            owner._ds41_steer_on = True\n'
+        '        if spec.get("off"):\n'
+        '            owner._ds41_steer_on = False\n'
+        '            owner._steer_alpha.fill_(0.0)\n'
+        '            try:\n'
+        '                import vllm.models.deepseek_v4_1.attention as _am0\n'
+        '                _am0._ds41_attn_alpha.fill_(0.0)\n'
+        '            except Exception:\n'
+        '                pass\n'
         '        if spec.get("alpha") is not None:\n'
-        '            owner._steer_alpha.fill_(float(spec["alpha"]))\n'
         '            try:\n'
         '                import vllm.models.deepseek_v4_1.attention as _am\n'
         '                _am._ds41_attn_alpha.fill_(float(spec["alpha"]))\n'
@@ -315,6 +329,10 @@ def patch_model(path: str) -> None:
         "            persistent=False,\n"
         "        )\n"
         "        self._ds41_ctrl_mtime = None\n"
+        "        # off is stock: until a vector loads, the fold sites run the\n"
+        "        # tree's own fused path — byte-identical to the unpatched\n"
+        "        # tree, zero extra kernels, no graph delta (lane discipline).\n"
+        "        self._ds41_steer_on = False\n"
         "        self._ds41_fold_off = bool(\n"
         "            os.environ.get(\"DSPARK_STEER_FOLD_OFF\", \"\"))\n"
         "        # Per-layer direction rows via the shared idempotent tagger\n"
@@ -329,6 +347,7 @@ def patch_model(path: str) -> None:
         "                self, _steer_path,\n"
         "                os.environ.get(\"WEIGHTLESS_STEER_LAYERS\", \"\"))\n"
         "            self._steer_alpha.fill_(self._steer_alpha_val)\n"
+        "            self._ds41_steer_on = True\n"
         "            logger.info(\n"
         "                \"dspark fold-site steering active: alpha=%.3f \"\n"
         "                \"layers=%d width=%d\", self._steer_alpha_val, _n,\n"
@@ -346,15 +365,22 @@ def patch_model(path: str) -> None:
         "            previous_output = None\n",
         "        if residual is None:\n"
         "            residual = x\n"
+        "        elif not self._ds41_steer_on:\n"
+        "            # steering off: the stock fused path, byte-identical to\n"
+        "            # the unpatched tree (zero extra kernels, no graph delta)\n"
+        "            if apply_engram:\n"
+        "                # Engram mutates the reconstructed residual; do not fuse across it.\n"
+        "                residual = self.mhc.post(x, residual, post_mix, res_mix)\n"
+        "                previous_output = None\n"
         "        else:\n"
         "            # ---- dspark dsv41 fold steering: materialize the fold\n"
         "            # (it is fused into mhc.pre on non-Engram layers), steer\n"
         "            # the folded stream, pre-Engram — the GLP v3\n"
         "            # hc_fold_pre_engram site. h = mean over the hc copies;\n"
         "            # subtracting the rank-1 term from every copy shifts the\n"
-        "            # mean by exactly alpha*(h.d)d. Zero row / alpha 0 =\n"
-        "            # numeric no-op. Same materialization this tree already\n"
-        "            # uses on Engram layers ('do not fuse across it').\n"
+        "            # mean by exactly alpha*(h.d)d. Same materialization this\n"
+        "            # tree already uses on Engram layers ('do not fuse\n"
+        "            # across it').\n"
         "            residual = self.mhc.post(x, residual, post_mix, res_mix)\n"
         "            previous_output = None\n"
         "            _ds41_h = residual.mean(dim=1)\n"
@@ -394,14 +420,16 @@ def patch_model(path: str) -> None:
         "                hidden_states = layer.mhc.post(\n"
         "                    hidden_states, residual, post_mix, res_mix\n"
         "                )\n"
-        "            # ---- dspark dsv41 fold steering: post-layer-\n"
-        "            # (end_layer-1) on the final folded stream (both branches\n"
-        "            # produce it). Same op as the in-layer fold site.\n"
-        "            _ds41_h = hidden_states.mean(dim=1)\n"
-        "            _ds41_d = self._steer_stack[self.end_layer - 1]\n"
-        "            hidden_states = hidden_states - (\n"
-        "                (self._steer_alpha * (_ds41_h @ _ds41_d))\n"
-        "                .unsqueeze(-1) * _ds41_d).unsqueeze(1)\n",
+        "            if self._ds41_steer_on:\n"
+        "                # ---- dspark dsv41 fold steering: post-layer-\n"
+        "                # (end_layer-1) on the final folded stream (both\n"
+        "                # branches produce it). Same op as the in-layer fold\n"
+        "                # site; absent when steering is off.\n"
+        "                _ds41_h = hidden_states.mean(dim=1)\n"
+        "                _ds41_d = self._steer_stack[self.end_layer - 1]\n"
+        "                hidden_states = hidden_states - (\n"
+        "                    (self._steer_alpha * (_ds41_h @ _ds41_d))\n"
+        "                    .unsqueeze(-1) * _ds41_d).unsqueeze(1)\n",
         "steer-final", path)
 
     open(path, "w").write(src)
