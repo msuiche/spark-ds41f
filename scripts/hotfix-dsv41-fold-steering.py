@@ -207,7 +207,7 @@ def patch_model(path: str) -> None:
 '                or getattr(_at, "_ds41_wrapped", False)):\n'
 '            continue\n'
 '        _orig = _at._o_proj\n'
-'        def _wrap(_o, _pos, *args, _self=_at, _f=_orig, **kwargs):\n'
+'        def _wrap(_o, _pos, *args, _self=_m, _f=_orig, **kwargs):\n'
 '            _out = _f(_o, _pos, *args, **kwargs)\n'
 '            _li2 = getattr(_self, "_ds41_lid", None)\n'
 '            if (_li2 is None or not (1 <= _li2 < 40)\n'
