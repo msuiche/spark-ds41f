@@ -20,7 +20,7 @@
   },
   "container": {
     "name": "dsv41-karmic-kraken",
-    "image": "vllm-ds41f-kkref:19f2c20ed4d6-1022-glp",
+    "image": "vllm-ds41f-kkref:19f2c20ed4d6-1022-glp27",
     "expected_labels": {
       "local.spark3.vllm.tree": "16385ad845015ea4c9e23b2b745845c7cdee967b",
       "local.spark3.b12x.tree": "1a647a311ca55d45070ab83d60668d9c8fb8886c",
@@ -137,7 +137,8 @@
     "SPARKNET_ROCE_PROXY_CPU": "big",
     "VLLM_L2_PREFETCH_KERNELS": "tilelang",
     "SPARKNET_ROCE_TIMEOUT_MS": "10000",
-    "WEIGHTLESS_STEER_PATH": "/vectors/glp-1017.gguf"
+    "WEIGHTLESS_STEER_PATH": "/vectors/dsv41-perlayer-dirs-ffn.pt",
+    "WEIGHTLESS_STEER_ALPHA": "3.5"
   },
   "drafts": 5,
   "serve_args": [
