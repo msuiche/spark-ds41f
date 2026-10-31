@@ -42,8 +42,13 @@ plugin adapter lands. Container tests: 27/27.
   spec_version 3, `hc_fold_pre_engram`, `alpha_default=3.5`, base pinned
   to revision `1bae0e1088993b9b82de08f59de5be5a34e42170`,
   `content_sha256` `f0aaba2fd1d5d52deb605495e0b99b8e868d44a4e612c994688cf243a95dfcb4`.
-- `dsv41-perlayer-dirs-ffn.pt` — the raw `{layer: tensor(5120)}` stack
-  (zero-padded outside L11–37) that `WEIGHTLESS_STEER_PATH` consumes.
+
+The raw `.pt` stack the hotfix consumes (`{layer: tensor(5120)}`,
+zero-padded outside L11–37) is not on HF; the working copy lives on the
+Modal volume `dsv41-flash:out-1017/dsv41-perlayer-dirs-ffn.pt` (fetch with
+`MODAL_PROFILE=tolmo modal volume get dsv41-flash
+out-1017/dsv41-perlayer-dirs-ffn.pt <dst>`), or re-export one from the
+GGUF — tensors are the same unit directions.
 
 27 unit directions, L11–37, weight-SVD from the FFN writers (no activation
 contrast at derivation). Measured on the Modal TP4 lane (dsv41-feat wheel,
