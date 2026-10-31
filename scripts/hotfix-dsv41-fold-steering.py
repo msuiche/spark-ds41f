@@ -96,6 +96,29 @@ def patch_model(path: str) -> None:
         '# ---- dspark dsv41 fold steering (GLP v3, hc_fold_pre_engram) ---\n'
         '# Live DeepseekV4Model instances for the runner-side ctrl poll.\n'
         'DSPARK_V41_REGISTRY: list = []\n'
+        '# zero-alpha scalar for untagged rebuilt layers (inert fallback)\n'
+        '_ds41_zero_alpha = 0.0\n'
+        '\n'
+        '\n'
+        'def _ds41_tag_layers(model) -> None:\n'
+        '    """Idempotent: point every DeepseekV4DecoderLayer under this\n'
+        '    model at the shared steer state. dspark.py builds its OWN layer\n'
+        '    ModuleList for the draft stack, and loaders may rebuild layers\n'
+        '    after __init__; this walks model.modules() so every instance\n'
+        '    gets the attributes. Fold rows: a DecoderLayer at position i\n'
+        '    applies direction[i-1] (its start fold consumes layer i-1\'s\n'
+        '    FFN write)."""\n'
+        '    _n_layers = model._steer_stack.shape[0]\n'
+        '    _lays = [\n'
+        '        _m for _m in model.modules()\n'
+        '        if type(_m).__name__ == "DeepseekV4DecoderLayer"]\n'
+        '    for _i, _l in enumerate(_lays):\n'
+        '        _l._ds41_steer_dir = (\n'
+        '            model._steer_stack[_i - 1]\n'
+        '            if _i >= 1 else model._steer_zero)\n'
+        '        _l._ds41_steer_alpha = model._steer_alpha\n'
+        '        _l._ds41_fold_off = model._ds41_fold_off\n'
+        '    return len(_lays)\n'
         '\n'
         '\n'
         'def _ds41_unit(v):\n'
@@ -167,33 +190,34 @@ def patch_model(path: str) -> None:
         '        _am._ds41_attn_alpha.fill_(float(model._steer_alpha_val))\n'
         '    except Exception:\n'
         '        _am = None\n'
-        '    _lays = [\n'
-        '        _m for _m in model.modules()\n'
-        '        if type(_m).__name__ == "DeepseekV4DecoderLayer"]\n'
-        '    for _li, _m in enumerate(_lays, start=1):\n'
-        '        _m._ds41_lid = _li\n'
-        '        _at = getattr(_m, "attn", None)\n'
-        '        if (_at is None or _am is None\n'
-        '                or getattr(_at, "_ds41_wrapped", False)):\n'
-        '            continue\n'
-        '        _orig = _at._o_proj\n'
-        '        def _wrap(_o, _pos, *args, _self=_at, _f=_orig, **kwargs):\n'
-        '            _out = _f(_o, _pos, *args, **kwargs)\n'
-        '            _li2 = getattr(_self, "_ds41_lid", None)\n'
-        '            if (_li2 is None or not (1 <= _li2 < 40)\n'
-        '                    or float(_am._ds41_attn_alpha) == 0.0):\n'
-        '                return _out\n'
-        '            _d = _am._ds41_attn_dir[_li2].to(_out.device)\n'
-        '            if float(_d.norm()) <= 0.0:\n'
-        '                return _out\n'
-        '            _h = _out.float()\n'
-        '            return (_h - (\n'
-        '                (float(_am._ds41_attn_alpha)\n'
-        '                 * (_h @ _d)).unsqueeze(-1)\n'
-        '                * _d)).to(_out.dtype)\n'
-        '        _at._o_proj = _wrap\n'
-        '        _at._ds41_wrapped = True\n'
-        '    return len(_dirs)\n'
+'    _lays = [\n'
+'        _m for _m in model.modules()\n'
+'        if type(_m).__name__ == "DeepseekV4DecoderLayer"]\n'
+'    for _li, _m in enumerate(_lays, start=1):\n'
+'        _m._ds41_lid = _li\n'
+'        _at = getattr(_m, "attn", None)\n'
+'        if (_at is None or _am is None\n'
+'                or getattr(_at, "_ds41_wrapped", False)):\n'
+'            continue\n'
+'        _orig = _at._o_proj\n'
+'        def _wrap(_o, _pos, *args, _self=_at, _f=_orig, **kwargs):\n'
+'            _out = _f(_o, _pos, *args, **kwargs)\n'
+'            _li2 = getattr(_self, "_ds41_lid", None)\n'
+'            if (_li2 is None or not (1 <= _li2 < 40)\n'
+'                    or float(_am._ds41_attn_alpha) == 0.0):\n'
+'                return _out\n'
+'            _d = _am._ds41_attn_dir[_li2].to(_out.device)\n'
+'            if float(_d.norm()) <= 0.0:\n'
+'                return _out\n'
+'            _h = _out.float()\n'
+'            return (_h - (\n'
+'                (float(_am._ds41_attn_alpha)\n'
+'                 * (_h @ _d)).unsqueeze(-1)\n'
+'                * _d)).to(_out.dtype)\n'
+'        _at._o_proj = _wrap\n'
+'        _at._ds41_wrapped = True\n'
+'    _ds41_tag_layers(model)\n'
+'    return len(_dirs)\n'
         '\n'
         '\n'
         'def _ds41_apply_ctrl(owner) -> None:\n'
@@ -293,18 +317,10 @@ def patch_model(path: str) -> None:
         "        self._ds41_ctrl_mtime = None\n"
         "        self._ds41_fold_off = bool(\n"
         "            os.environ.get(\"DSPARK_STEER_FOLD_OFF\", \"\"))\n"
-        "        # Per-layer direction rows: layer i's start-fold applies\n"
-        "        # direction[i-1] (it folds layer i-1's FFN write). Layer 0\n"
-        "        # never folds; it gets the zero row. Plain attributes, NOT\n"
-        "        # registered buffers (they alias rows of _steer_stack).\n"
-        "        for _i, _l in enumerate(\n"
-        "                islice(self.layers, self.start_layer, self.end_layer),\n"
-        "                start=self.start_layer):\n"
-        "            _l._ds41_steer_dir = (\n"
-        "                self._steer_stack[_i - 1]\n"
-        "                if _i >= 1 else self._steer_zero)\n"
-        "            _l._ds41_steer_alpha = self._steer_alpha\n"
-        "            _l._ds41_fold_off = self._ds41_fold_off\n"
+        "        # Per-layer direction rows via the shared idempotent tagger\n"
+        "        # (dspark.py builds its OWN DecoderLayer stack; the loader\n"
+        "        # also rebuilds layers, and both re-tag on every load).\n"
+        "        _ds41_tag_layers(self)\n"
         "        DSPARK_V41_REGISTRY.append(self)\n"
         "        _steer_path = os.environ.get(\"WEIGHTLESS_STEER_PATH\", \"\")."
         "strip()\n"
@@ -342,10 +358,20 @@ def patch_model(path: str) -> None:
         "            residual = self.mhc.post(x, residual, post_mix, res_mix)\n"
         "            previous_output = None\n"
         "            _ds41_h = residual.mean(dim=1)\n"
-        "            _ds41_d = self._ds41_steer_dir\n"
-        "            if not self._ds41_fold_off:\n"
+        "            _ds41_d = getattr(\n"
+        "                self, \"_ds41_steer_dir\", None)\n"
+        "            if _ds41_d is None:\n"
+        "                # an untagged rebuilt layer (dspark draft stack that\n"
+        "                # was constructed after the last tag pass): inert.\n"
+        "                _ds41_d = torch.zeros(\n"
+        "                    residual.shape[-1],\n"
+        "                    dtype=residual.dtype, device=residual.device)\n"
+        "            if not getattr(\n"
+        "                self, \"_ds41_fold_off\", False):\n"
         "                residual = residual - (\n"
-        "                    (self._ds41_steer_alpha * (_ds41_h @ _ds41_d))\n"
+        "                    (getattr(\n"
+        "                        self, \"_ds41_steer_alpha\",\n"
+        "                        _ds41_zero_alpha) * (_ds41_h @ _ds41_d))\n"
         "                    .unsqueeze(-1) * _ds41_d).unsqueeze(1)\n",
         "steer-fold", path)
 
