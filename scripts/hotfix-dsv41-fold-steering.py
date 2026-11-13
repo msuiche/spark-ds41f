@@ -367,7 +367,8 @@ def patch_model(path: str) -> None:
         "            previous_output = None\n",
         "        if residual is None:\n"
         "            residual = x\n"
-        "        elif not self._ds41_steer_on:\n"
+        "        elif not getattr(self, \"_ds41_steer_on\", False):\n"
+        "            # (draft-stack layers are never tagged; stock path)\n"
         "            # steering off: the stock fused path, byte-identical to\n"
         "            # the unpatched tree (zero extra kernels, no graph delta)\n"
         "            if apply_engram:\n"
