@@ -125,6 +125,7 @@ def patch_model(path: str) -> None:
         '            if _i >= 1 else model._steer_zero)\n'
         '        _l._ds41_steer_alpha = model._steer_alpha\n'
         '        _l._ds41_fold_off = model._ds41_fold_off\n'
+        '        _l._ds41_steer_on = model._ds41_steer_on\n'
         '    return len(_lays)\n'
         '\n'
         '\n'
@@ -248,11 +249,12 @@ def patch_model(path: str) -> None:
         '    try:\n'
         '        spec = json.load(open(ctrl))\n'
         '        if spec.get("steer_path"):\n'
+        '            owner._ds41_steer_on = True\n'
         '            _ds41_load_steer(owner, spec["steer_path"],\n'
         '                             spec.get("steer_layers") or "")\n'
-        '            owner._ds41_steer_on = True\n'
         '        if spec.get("off"):\n'
         '            owner._ds41_steer_on = False\n'
+        '            _ds41_tag_layers(owner)\n'
         '            owner._steer_alpha.fill_(0.0)\n'
         '            try:\n'
         '                import vllm.models.deepseek_v4_1.attention as _am0\n'
@@ -343,11 +345,11 @@ def patch_model(path: str) -> None:
         "        _steer_path = os.environ.get(\"WEIGHTLESS_STEER_PATH\", \"\")."
         "strip()\n"
         "        if _steer_path:\n"
+        "            self._ds41_steer_on = True\n"
         "            _n = _ds41_load_steer(\n"
         "                self, _steer_path,\n"
         "                os.environ.get(\"WEIGHTLESS_STEER_LAYERS\", \"\"))\n"
         "            self._steer_alpha.fill_(self._steer_alpha_val)\n"
-        "            self._ds41_steer_on = True\n"
         "            logger.info(\n"
         "                \"dspark fold-site steering active: alpha=%.3f \"\n"
         "                \"layers=%d width=%d\", self._steer_alpha_val, _n,\n"
